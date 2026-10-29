@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="description" content="ESP32 + MQ-3 Alcohol Detection Ignition Lock Dashboard">
+  <title>ESP32 Alcohol Ignition Lock Dashboard</title>
+
+  <style>
+    /* ====================================================
+       THEME VARIABLES & COLOR SPECIFICATION
+       ==================================================== */
+    :root {
+      --color-ok: #2e9e5b;
+      --color-ok-bg: rgba(46, 158, 91, 0.12);
+      --color-ok-border: rgba(46, 158, 91, 0.35);
+
+      --color-danger: #d64545;
+      --color-danger-bg: rgba(214, 69, 69, 0.12);
+      --color-danger-border: rgba(214, 69, 69, 0.35);
+
+      --color-warning: #e0a020;
+      --color-warning-bg: rgba(224, 160, 32, 0.14);
+      --color-warning-border: rgba(224, 160, 32, 0.4);
+
+      --color-hysteresis: #f59e0b;
+      --color-offline: #64748b;
+
+      /* Light Theme (Default) */
+      --bg-page: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-subtle: #f8fafc;
+      --border-card: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1);
+
+      --chart-grid: #e2e8f0;
+      --chart-line: #0284c7;
+      --chart-fill: rgba(2, 132, 199, 0.14);
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-pill: 9999px;
+
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* Dark Mode via prefers-color-scheme */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg-page: #0b1120;
+        --bg-card: #131d33;
+        --bg-card-subtle: #1a2744;
+        --border-card: #24355a;
+        --border-subtle: #1e2c4a;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --text-subtle: #64748b;
+
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+        --shadow-md: 0 4px 10px rgba(0,0,0,0.4);
+        --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+
+        --chart-grid: #1e2c4a;
+        --chart-line: #38bdf8;
+        --chart-fill: rgba(56, 189, 248, 0.15);
+      }
+    }
+
+    /* Explicit Theme Overrides */
+    [data-theme="dark"] {
+      --bg-page: #0b1120;
+      --bg-card: #131d33;
+      --bg-card-subtle: #1a2744;
+      --border-card: #24355a;
+      --border-subtle: #1e2c4a;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 10px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+
+      --chart-grid: #1e2c4a;
+      --chart-line: #38bdf8;
+      --chart-fill: rgba(56, 189, 248, 0.15);
+    }
+
+    [data-theme="light"] {
+      --bg-page: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-subtle: #f8fafc;
+      --border-card: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1);
+
+      --chart-grid: #e2e8f0;
+      --chart-line: #0284c7;
+      --chart-fill: rgba(2, 132, 199, 0.14);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      padding: 16px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        padding: 24px 32px;
+      }
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1060px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ====================================================
+       1. HEADER SECTION
+       ==================================================== */
+    header.app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .brand-title h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .connection-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--color-offline);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .status-dot.online {
+      background-color: var(--color-ok);
+      box-shadow: 0 0 0 3px rgba(46, 158, 91, 0.25);
+    }
+
+    .status-dot.offline {
+      background-color: var(--color-offline);
+      box-shadow: none;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+      min-height: 40px;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-subtle);
+      border-color: var(--text-muted);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-demo {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-demo:hover {
+      background: linear-gradient(135deg, #4338ca, #6d28d9);
+      color: #ffffff;
+    }
+
+    .btn-demo.active {
+      background: linear-gradient(135deg, #059669, #10b981);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+    }
+
+    /* ====================================================
+       OFFLINE BANNER
+       ==================================================== */
+    .offline-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background-color: var(--color-danger);
+      color: #ffffff;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(214, 69, 69, 0.3);
+      animation: bannerSlide 0.3s ease;
+    }
+
+    .offline-banner.visible {
+      display: flex;
+    }
+
+    .offline-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    @keyframes bannerSlide {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ====================================================
+       DEMO MODE INTERACTIVE CONTROLLER
+       ==================================================== */
+    .demo-bar {
+      display: none;
+      background: var(--bg-card);
+      border: 2px dashed #6366f1;
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      gap: 14px;
+      flex-direction: column;
+      box-shadow: var(--shadow-md);
+    }
+
+    .demo-bar.visible {
+      display: flex;
+    }
+
+    .demo-bar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .demo-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #6366f1;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .demo-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-pill {
+      border-radius: var(--radius-pill);
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--border-card);
+      background: var(--bg-card-subtle);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-pill:hover, .btn-pill.selected {
+      background: #6366f1;
+      color: #ffffff;
+      border-color: #6366f1;
+    }
+
+    .demo-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      flex-wrap: wrap;
+    }
+
+    .demo-slider-row input[type="range"] {
+      flex: 1;
+      min-width: 150px;
+      accent-color: #6366f1;
+    }
+
+    /* ====================================================
+       HARDWARE GPIO PIN STATUS PANEL
+       ==================================================== */
+    .hardware-pins-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-around;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pin-status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+    }
+
+    .pin-indicator {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--border-card);
+      border: 2px solid rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+    }
+
+    .pin-indicator.green-on {
+      background: #22c55e;
+      box-shadow: 0 0 10px #22c55e;
+    }
+
+    .pin-indicator.red-on {
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+    }
+
+    .pin-indicator.relay-on {
+      background: #0ea5e9;
+      box-shadow: 0 0 10px #0ea5e9;
+    }
+
+    .pin-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pin-title {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .pin-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ====================================================
+       2. PRIMARY STATUS HERO CARD (Distance-readable)
+       ==================================================== */
+    .status-hero-card {
+      background: var(--bg-card);
+      border: 2px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    @media (min-width: 768px) {
+      .status-hero-card {
+        padding: 34px 28px;
+      }
+    }
+
+    .status-hero-card.state-ok {
+      background-color: var(--color-ok);
+      border-color: #24834b;
+      color: #ffffff;
+      box-shadow: 0 10px 28px rgba(46, 158, 91, 0.35);
+    }
+
+    .status-hero-card.state-danger {
+      background-color: var(--color-danger);
+      border-color: #b93232;
+      color: #ffffff;
+      box-shadow: 0 10px 30px rgba(214, 69, 69, 0.4);
+      animation: alertPulse 2s infinite ease-in-out;
+    }
+
+    .status-hero-card.state-warming {
+      background-color: var(--color-warning);
+      border-color: #be820e;
+      color: #1a1608;
+      box-shadow: 0 10px 28px rgba(224, 160, 32, 0.3);
+      animation: warmBlink 1.4s infinite ease-in-out;
+    }
+
+    .status-hero-card.state-fault {
+      background-color: var(--color-danger);
+      border-color: #991b1b;
+      color: #ffffff;
+      box-shadow: 0 10px 28px rgba(214, 69, 69, 0.4);
+      animation: faultBlink 0.8s infinite alternate;
+    }
+
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 10px 28px rgba(214, 69, 69, 0.4); }
+      50% { box-shadow: 0 14px 44px rgba(214, 69, 69, 0.7); }
+    }
+
+    @keyframes warmBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.84; }
+    }
+
+    @keyframes faultBlink {
+      0% { filter: brightness(1); }
+      100% { filter: brightness(0.85); }
+    }
+
+    .hero-icon-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: currentColor;
+    }
+
+    .hero-icon-circle svg {
+      width: 42px;
+      height: 42px;
+    }
+
+    .hero-headline {
+      font-size: 1.65rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      text-transform: uppercase;
+      word-break: break-word;
+    }
+
+    @media (min-width: 768px) {
+      .hero-headline {
+        font-size: 2.15rem;
+      }
+    }
+
+    .hero-explanation {
+      font-size: 1.05rem;
+      font-weight: 500;
+      max-width: 620px;
+      line-height: 1.45;
+      opacity: 0.95;
+    }
+
+    .hero-relay-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: var(--radius-pill);
+      background: rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(6px);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    /* ====================================================
+       3. METRICS & GAUGE SECTION
+       ==================================================== */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 860px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--text-muted);
+    }
+
+    /* Semi-circular Gauge */
+    .gauge-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 10px 0;
+    }
+
+    .gauge-svg {
+      width: 100%;
+      max-width: 320px;
+      height: auto;
+      overflow: visible;
+    }
+
+    .gauge-track {
+      fill: none;
+      stroke: var(--bg-card-subtle);
+      stroke-width: 20;
+      stroke-linecap: round;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke: var(--color-ok);
+      stroke-width: 20;
+      stroke-linecap: round;
+      stroke-dasharray: 236;
+      stroke-dashoffset: 236;
+      transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease;
+    }
+
+    .gauge-center-content {
+      position: absolute;
+      bottom: 22px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .gauge-center-delta {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .gauge-center-unit {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .threshold-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 8px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-card);
+      color: var(--text-muted);
+      transition: all 0.3s ease;
+    }
+
+    .threshold-pill.safe {
+      background: var(--color-ok-bg);
+      border-color: var(--color-ok-border);
+      color: var(--color-ok);
+    }
+
+    .threshold-pill.danger {
+      background: var(--color-danger-bg);
+      border-color: var(--color-danger-border);
+      color: var(--color-danger);
+    }
+
+    .threshold-pill.holding {
+      background: var(--color-warning-bg);
+      border-color: var(--color-warning-border);
+      color: var(--color-warning);
+    }
+
+    .gauge-ticks-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 290px;
+      margin-top: -6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Metric Grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .metric-box {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .metric-val {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 0.75rem;
+      color: var(--text-subtle);
+    }
+
+    /* ====================================================
+       4. 5-MINUTE READING LINE CHART (Plain Canvas)
+       ==================================================== */
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 240px;
+    }
+
+    #readingsChart {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: var(--radius-sm);
+    }
+
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .legend-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .legend-color.reading { background: var(--chart-line); }
+    .legend-color.margin-on {
+      background: var(--color-danger);
+      background-image: repeating-linear-gradient(90deg, var(--color-danger), var(--color-danger) 3px, transparent 3px, transparent 6px);
+    }
+    .legend-color.margin-off {
+      background: var(--color-hysteresis);
+      background-image: repeating-linear-gradient(90deg, var(--color-hysteresis), var(--color-hysteresis) 2px, transparent 2px, transparent 5px);
+    }
+    .legend-color.base {
+      background: var(--text-subtle);
+      background-image: repeating-linear-gradient(90deg, var(--text-subtle), var(--text-subtle) 2px, transparent 2px, transparent 5px);
+    }
+
+    /* ====================================================
+       5. EVENT AUDIT LOG & COUNTERS
+       ==================================================== */
+    .counters-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .counter-stat {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+
+    .counter-stat.highlight-danger {
+      border-color: var(--color-danger-border);
+      background: var(--color-danger-bg);
+    }
+
+    .counter-stat-val {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .counter-stat.highlight-danger .counter-stat-val {
+      color: var(--color-danger);
+    }
+
+    .counter-stat-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .log-table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      max-height: 280px;
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .log-table th {
+      background: var(--bg-card-subtle);
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 10px 14px;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border-card);
+      z-index: 2;
+    }
+
+    .log-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .log-table tr:hover td {
+      background: var(--bg-card-subtle);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-ok {
+      background: var(--color-ok-bg);
+      color: var(--color-ok);
+      border: 1px solid var(--color-ok-border);
+    }
+
+    .badge-danger {
+      background: var(--color-danger-bg);
+      color: var(--color-danger);
+      border: 1px solid var(--color-danger-border);
+    }
+
+    .badge-warning {
+      background: var(--color-warning-bg);
+      color: var(--color-warning);
+      border: 1px solid var(--color-warning-border);
+    }
+
+    /* ====================================================
+       6. FOOTER & TOAST
+       ==================================================== */
+    footer.app-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-card);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .footer-item strong { color: var(--text-main); }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 999;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- 1. HEADER SECTION -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon" aria-hidden="true">
+          <!-- Car Key / Lock Shield Icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <circle cx="12" cy="11" r="2"></circle>
+            <path d="M12 13v3"></path>
+          </svg>
+        </div>
+        <div class="brand-title">
+          <h1>Alcohol Lock Dashboard</h1>
+          <div class="connection-status">
+            <span class="status-dot online" id="connectionDot" aria-hidden="true"></span>
+            <span id="connectionText">ESP32 Online (/status)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="header-actions">
+        <!-- Audio Mute Toggle -->
+        <button class="btn" id="soundBtn" title="Toggle Alarm Sound" aria-label="Toggle Alarm Sound">
+          <svg id="soundIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <span id="soundLabel">Sound On</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button class="btn" id="themeBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <span id="themeLabel">Theme</span>
+        </button>
+
+        <!-- Demo Mode Toggle -->
+        <button class="btn btn-demo" id="demoToggleBtn" aria-label="Toggle Demo Simulation Mode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 3v4"></path>
+            <path d="M15 3v4"></path>
+            <path d="M6 7h12"></path>
+            <path d="M10 21v-4a2 2 0 0 1 4 0v4"></path>
+            <rect x="4" y="7" width="16" height="14" rx="2"></rect>
+          </svg>
+          <span id="demoBtnLabel">Demo Mode: OFF</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- DEVICE OFFLINE BANNER -->
+    <div class="offline-banner" id="offlineBanner" role="alert">
+      <div class="offline-banner-left">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+          <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        <div>
+          <strong>Device Offline:</strong> Unable to connect to ESP32 at <code>/status</code>. Auto-retrying every 1s...
+        </div>
+      </div>
+      <button class="btn" id="activateDemoFromBanner" style="background:#fff; color:#ef4444; border:none; padding:4px 10px; font-size:0.8rem;">
+        Enable Demo Mode
+      </button>
+    </div>
+
+    <!-- DEMO SIMULATION CONTROLLER (Simulates the exact C++ firmware state machine) -->
+    <div class="demo-bar" id="demoBar" aria-label="Demo Mode Controls">
+      <div class="demo-bar-top">
+        <span class="demo-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          Firmware Simulator (Exact C++ State Machine)
+        </span>
+        <div class="demo-btn-group">
+          <button class="btn-pill selected" data-demo-state="OK - ignition allowed">1. SOBER (OK)</button>
+          <button class="btn-pill" data-demo-state="ALCOHOL DETECTED - ignition blocked">2. ALCOHOL (Trip &gt; 400)</button>
+          <button class="btn-pill" data-demo-state="WARMING UP">3. WARMUP (30s / 80 samples)</button>
+          <button class="btn-pill" data-demo-state="SENSOR FAULT - ignition blocked">4. FAULT (&lt;20 or &gt;4090)</button>
+          <button class="btn-pill" id="demoToggleOffline">Simulate Offline</button>
+          <button class="btn-pill" id="demoAutoCycleBtn">Auto-Cycle: OFF</button>
+        </div>
+      </div>
+
+      <div class="demo-slider-row">
+        <span>Simulate Raw ADC (GPIO 34 via 10k/10k divider):</span>
+        <input type="range" id="demoAdcSlider" min="0" max="4095" value="812" step="1">
+        <span id="demoSliderVal" style="font-family:monospace; font-weight:700;">812</span>
+        <span style="color:var(--text-muted); font-size:0.8rem;">
+          [Trip: &gt; <span id="demoTripNum">1190</span> | Clear Hysteresis: &lt; <span id="demoClearNum">1040</span> | Rail Fault: &lt; 20 or &gt; 4090]
+        </span>
+      </div>
+    </div>
+
+    <!-- HARDWARE GPIO STATUS BAR -->
+    <section class="hardware-pins-bar" aria-label="ESP32 Physical Pin States">
+      <!-- Green LED Pin 26 -->
+      <div class="pin-status-item">
+        <span class="pin-indicator green-on" id="hwPinGreen"></span>
+        <div class="pin-info">
+          <span class="pin-title">Green LED (Pin 26)</span>
+          <span class="pin-sub" id="hwPinGreenSub">ACTIVE (Sober)</span>
+        </div>
+      </div>
+
+      <!-- Red LED Pin 27 -->
+      <div class="pin-status-item">
+        <span class="pin-indicator" id="hwPinRed"></span>
+        <div class="pin-info">
+          <span class="pin-title">Red LED (Pin 27)</span>
+          <span class="pin-sub" id="hwPinRedSub">OFF</span>
+        </div>
+      </div>
+
+      <!-- Relay Pin 14 -->
+      <div class="pin-status-item">
+        <span class="pin-indicator relay-on" id="hwPinRelay"></span>
+        <div class="pin-info">
+          <span class="pin-title">Relay (Pin 14)</span>
+          <span class="pin-sub" id="hwPinRelaySub">ENABLED (High)</span>
+        </div>
+      </div>
+
+      <!-- Sensor Analog Pin 34 with 10k/10k divider -->
+      <div class="pin-status-item">
+        <span class="pin-indicator" style="background:#0284c7; box-shadow:0 0 6px #0284c7;"></span>
+        <div class="pin-info">
+          <span class="pin-title">MQ-3 Analog (Pin 34)</span>
+          <span class="pin-sub" id="hwPinAdcSub">10k/10k Divider (~2.5V max)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PRIMARY STATUS HERO CARD (Distance-Readable) -->
+    <main>
+      <section class="status-hero-card state-ok" id="statusHeroCard" aria-live="polite">
+        <div class="hero-icon-circle" id="heroIconWrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+
+        <h2 class="hero-headline" id="heroHeadline">READY - Ignition Allowed</h2>
+        <p class="hero-explanation" id="heroExplanation">
+          Air sample clear. Alcohol level is within safe baseline limits.
+        </p>
+
+        <div class="hero-relay-badge" id="heroRelayBadge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+          <span id="heroRelayText">IGNITION ALLOWED (RELAY CLOSED)</span>
+        </div>
+      </section>
+    </main>
+
+    <!-- 3. LIVE READING GAUGE & METRICS -->
+    <div class="dashboard-grid">
+
+      <!-- Gauge Card -->
+      <section class="card" aria-labelledby="liveGaugeTitle">
+        <div class="card-header">
+          <h2 class="card-title" id="liveGaugeTitle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Alcohol Differential (Δ = Reading - Baseline)
+          </h2>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
+            MARGIN_ON = +400
+          </span>
+        </div>
+
+        <div class="gauge-wrapper">
+          <svg class="gauge-svg" viewBox="0 0 200 125" aria-hidden="true">
+            <!-- Background track (180 deg arc) -->
+            <path class="gauge-track" d="M 25 105 A 75 75 0 0 1 175 105" />
+            <!-- Active Fill -->
+            <path class="gauge-fill" id="gaugeArcFill" d="M 25 105 A 75 75 0 0 1 175 105" />
+
+            <!-- MARGIN_OFF (+250) Tick Line -->
+            <line x1="85" y1="31" x2="88" y2="44" stroke="var(--color-hysteresis)" stroke-width="2.5" stroke-linecap="round" />
+            <text x="76" y="24" text-anchor="middle" font-size="7" font-weight="bold" fill="var(--color-hysteresis)">
+              OFF (+250)
+            </text>
+
+            <!-- MARGIN_ON (+400) Threshold Marker -->
+            <line x1="100" y1="18" x2="100" y2="35" stroke="var(--color-danger)" stroke-width="3" stroke-linecap="round" />
+            <text x="100" y="14" text-anchor="middle" font-size="8" font-weight="bold" fill="var(--color-danger)">
+              TRIP (+400)
+            </text>
+          </svg>
+
+          <div class="gauge-center-content">
+            <span class="gauge-center-delta" id="gaugeDeltaValue">+22</span>
+            <span class="gauge-center-unit">ADC above clean-air baseline</span>
+            <div class="threshold-pill safe" id="thresholdPill">
+              <span id="thresholdPillDot">●</span>
+              <span id="thresholdPillText">Safe Level (&lt; 400 Δ)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="gauge-ticks-row">
+          <span>0 (Baseline)</span>
+          <span style="color:var(--color-hysteresis)">+250 (Clear)</span>
+          <span style="color:var(--color-danger)">+400 (Trip)</span>
+          <span>+800+</span>
+        </div>
+      </section>
+
+      <!-- Exact C++ Firmware Parameters & Live Metrics -->
+      <section class="card" aria-labelledby="hardwareMetricsTitle">
+        <div class="card-header">
+          <h2 class="card-title" id="hardwareMetricsTitle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            Firmware Calibration & Fault Guard
+          </h2>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted);" id="baselineValidTag">
+            BASELINE VALID
+          </span>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-box">
+            <span class="metric-label">Current Reading</span>
+            <span class="metric-val" id="valReading">812</span>
+            <span class="metric-sub">Smoothed 12-bit ADC</span>
+          </div>
+
+          <div class="metric-box">
+            <span class="metric-label">Clean Baseline (80 avg)</span>
+            <span class="metric-val" id="valBaseline">790</span>
+            <span class="metric-sub" id="baselineSubText">Within valid window (20-4090)</span>
+          </div>
+
+          <div class="metric-box">
+            <span class="metric-label">Trip Point (MARGIN_ON)</span>
+            <span class="metric-val" id="valTripThresh">1190</span>
+            <span class="metric-sub">Baseline + 400 ADC</span>
+          </div>
+
+          <div class="metric-box">
+            <span class="metric-label">Clear Point (MARGIN_OFF)</span>
+            <span class="metric-val" id="valClearThresh">1040</span>
+            <span class="metric-sub">Baseline + 250 (Hysteresis)</span>
+          </div>
+        </div>
+
+        <!-- Timers: HOLD_MS and FAULT_RECOVER_MS -->
+        <div class="metric-box" style="margin-top:auto;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <span class="metric-label" id="timerLabel">HOLD_MS Safety Timer (10,000 ms)</span>
+              <div style="font-size:0.95rem; font-weight:700; margin-top:2px;" id="holdTimerStatus">
+                Lockout Hold: INACTIVE
+              </div>
+            </div>
+            <div id="holdTimerCountdown" style="font-size:1.3rem; font-weight:800; font-family:monospace; color:var(--text-muted);">
+              0.0s
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 4. 5-MINUTE READING LINE CHART (Plain Canvas) -->
+    <section class="card" aria-labelledby="trendChartTitle">
+      <div class="card-header">
+        <h2 class="card-title" id="trendChartTitle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          5-Minute Alcohol Trend (300 Polled Samples)
+        </h2>
+        <div class="chart-legend">
+          <div class="legend-tag">
+            <span class="legend-color reading"></span>
+            <span>Reading ADC</span>
+          </div>
+          <div class="legend-tag">
+            <span class="legend-color margin-on"></span>
+            <span>Trip (Base + 400)</span>
+          </div>
+          <div class="legend-tag">
+            <span class="legend-color margin-off"></span>
+            <span>Hysteresis (Base + 250)</span>
+          </div>
+          <div class="legend-tag">
+            <span class="legend-color base"></span>
+            <span>Clean Baseline</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container" id="chartContainer">
+        <canvas id="readingsChart"></canvas>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); padding:0 4px;">
+        <span>5 min ago</span>
+        <span>4 min</span>
+        <span>3 min</span>
+        <span>2 min</span>
+        <span>1 min</span>
+        <span>Live (Now)</span>
+      </div>
+    </section>
+
+    <!-- 5. EVENT AUDIT LOG & DETECTIONS -->
+    <section class="card" aria-labelledby="eventLogTitle">
+      <div class="card-header">
+        <h2 class="card-title" id="eventLogTitle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Interlock Event Audit Log
+        </h2>
+
+        <button class="btn" id="clearLogBtn" title="Clear stored state transitions">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Clear Log
+        </button>
+      </div>
+
+      <!-- Counters -->
+      <div class="counters-row">
+        <div class="counter-stat highlight-danger">
+          <div class="counter-stat-val" id="alcoholDetectionsCount">0</div>
+          <div class="counter-stat-title">Alcohol Detections Today</div>
+        </div>
+
+        <div class="counter-stat">
+          <div class="counter-stat-val" id="totalEventsCount">0</div>
+          <div class="counter-stat-title">Logged State Transitions</div>
+        </div>
+
+        <div class="counter-stat">
+          <div class="counter-stat-val" id="monitoringUptime">00:00:00</div>
+          <div class="counter-stat-title">Monitor Session Duration</div>
+        </div>
+      </div>
+
+      <!-- Log Table -->
+      <div class="log-table-wrapper">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>State Transition</th>
+              <th>Reading ADC</th>
+              <th>Differential (Δ)</th>
+              <th>Ignition Relay</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6. FOOTER -->
+    <footer class="app-footer">
+      <div class="footer-item">
+        <span>Last Polled:</span>
+        <strong id="footerLastUpdate">Connecting...</strong>
+      </div>
+      <div class="footer-item">
+        <span>Clean Baseline:</span>
+        <strong id="footerBaselineVal">790 ADC (80-sample avg)</strong>
+      </div>
+      <div class="footer-item">
+        <span>ADC Safety Rails:</span>
+        <span>MIN: 20 | MAX: 4090 | FAULT RECOVERY: 2.0s</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toast">Notification</div>
+
+  <!-- ====================================================
+       APPLICATION JAVASCRIPT
+       ==================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* --------------------------------------------------
+         CONSTANTS MATCHING THE EXACT C++ REVISION
+         -------------------------------------------------- */
+      const POLL_INTERVAL_MS = 1000;
+      const MAX_CHART_POINTS = 300;
+      const STORAGE_KEY_LOG = 'esp32_alcohol_lock_events_v4';
+      const STORAGE_KEY_THEME = 'esp32_alcohol_theme_pref';
+      const STORAGE_KEY_MUTE = 'esp32_alcohol_mute_pref';
+
+      // Settings from the C++ firmware
+      const WARMUP_MS = 30000;         // 30 seconds warmup
+      const MARGIN_ON = 400;           // ADC counts above baseline => alcohol trip
+      const MARGIN_OFF = 250;          // must drop below this to clear (hysteresis)
+      const HOLD_MS = 10000;           // keep blocked for 10s after reading clears
+      const ADC_MIN = 20;              // below this: sensor disconnected or shorted
+      const ADC_MAX = 4090;            // above this: rail fault
+      const BASELINE_SAMPLES = 80;     // samples averaged for baseline
+      const FAULT_RECOVER_MS = 2000;   // 2000ms debounce before leaving FAULT
+
+      // The 4 C++ State Strings
+      const STATE_WARMING = 'WARMING UP';
+      const STATE_SOBER   = 'OK - ignition allowed';
+      const STATE_ALCOHOL = 'ALCOHOL DETECTED - ignition blocked';
+      const STATE_FAULT   = 'SENSOR FAULT - ignition blocked';
+
+      /* --------------------------------------------------
+         APPLICATION STATE
+         -------------------------------------------------- */
+      const appState = {
+        isDemoMode: false,
+        demoSimulateOffline: false,
+        demoAutoCycle: false,
+        demoCycleIndex: 0,
+
+        // C++ Firmware state replication for Demo Mode
+        demoSmoothed: 812,
+        demoRaw: 812,
+        demoBootTime: Date.now(),
+        demoLastHighTime: 0,
+        demoFaultRecoverStart: 0,
+        demoBaselineValid: true,
+
+        isOnline: false,
+        isMuted: false,
+        currentTheme: 'system',
+
+        // Hardware Data (polled from /status)
+        lastReading: 812,
+        baseline: 790,
+        baselineValid: true,
+        state: STATE_SOBER,
+        previousState: null,
+        ignitionAllowed: true,
+        lastPollTimestamp: null,
+
+        holdingUntil: 0,
+        faultRecoveringUntil: 0,
+
+        readingsHistory: [],
+        events: [],
+        sessionStartTime: Date.now()
+      };
+
+      /* --------------------------------------------------
+         DOM REFERENCES
+         -------------------------------------------------- */
+      const dom = {
+        connectionDot: document.getElementById('connectionDot'),
+        connectionText: document.getElementById('connectionText'),
+        offlineBanner: document.getElementById('offlineBanner'),
+        activateDemoFromBanner: document.getElementById('activateDemoFromBanner'),
+
+        demoToggleBtn: document.getElementById('demoToggleBtn'),
+        demoBtnLabel: document.getElementById('demoBtnLabel'),
+        demoBar: document.getElementById('demoBar'),
+        demoStateButtons: document.querySelectorAll('[data-demo-state]'),
+        demoAdcSlider: document.getElementById('demoAdcSlider'),
+        demoSliderVal: document.getElementById('demoSliderVal'),
+        demoToggleOffline: document.getElementById('demoToggleOffline'),
+        demoAutoCycleBtn: document.getElementById('demoAutoCycleBtn'),
+        demoTripNum: document.getElementById('demoTripNum'),
+        demoClearNum: document.getElementById('demoClearNum'),
+
+        soundBtn: document.getElementById('soundBtn'),
+        soundLabel: document.getElementById('soundLabel'),
+        soundIcon: document.getElementById('soundIcon'),
+        themeBtn: document.getElementById('themeBtn'),
+        themeLabel: document.getElementById('themeLabel'),
+
+        // GPIO Pin Status
+        hwPinGreen: document.getElementById('hwPinGreen'),
+        hwPinGreenSub: document.getElementById('hwPinGreenSub'),
+        hwPinRed: document.getElementById('hwPinRed'),
+        hwPinRedSub: document.getElementById('hwPinRedSub'),
+        hwPinRelay: document.getElementById('hwPinRelay'),
+        hwPinRelaySub: document.getElementById('hwPinRelaySub'),
+        hwPinAdcSub: document.getElementById('hwPinAdcSub'),
+
+        // Hero Card
+        statusHeroCard: document.getElementById('statusHeroCard'),
+        heroIconWrap: document.getElementById('heroIconWrap'),
+        heroHeadline: document.getElementById('heroHeadline'),
+        heroExplanation: document.getElementById('heroExplanation'),
+        heroRelayText: document.getElementById('heroRelayText'),
+
+        // Gauge & Values
+        gaugeArcFill: document.getElementById('gaugeArcFill'),
+        gaugeDeltaValue: document.getElementById('gaugeDeltaValue'),
+        thresholdPill: document.getElementById('thresholdPill'),
+        thresholdPillDot: document.getElementById('thresholdPillDot'),
+        thresholdPillText: document.getElementById('thresholdPillText'),
+
+        valReading: document.getElementById('valReading'),
+        valBaseline: document.getElementById('valBaseline'),
+        valTripThresh: document.getElementById('valTripThresh'),
+        valClearThresh: document.getElementById('valClearThresh'),
+        baselineValidTag: document.getElementById('baselineValidTag'),
+        baselineSubText: document.getElementById('baselineSubText'),
+        timerLabel: document.getElementById('timerLabel'),
+        holdTimerStatus: document.getElementById('holdTimerStatus'),
+        holdTimerCountdown: document.getElementById('holdTimerCountdown'),
+
+        // Chart
+        chartCanvas: document.getElementById('readingsChart'),
+        chartContainer: document.getElementById('chartContainer'),
+
+        // Logs
+        clearLogBtn: document.getElementById('clearLogBtn'),
+        alcoholDetectionsCount: document.getElementById('alcoholDetectionsCount'),
+        totalEventsCount: document.getElementById('totalEventsCount'),
+        monitoringUptime: document.getElementById('monitoringUptime'),
+        logTableBody: document.getElementById('logTableBody'),
+
+        // Footer & Toast
+        footerLastUpdate: document.getElementById('footerLastUpdate'),
+        footerBaselineVal: document.getElementById('footerBaselineVal'),
+        toast: document.getElementById('toast')
+      };
+
+      /* --------------------------------------------------
+         WEB AUDIO API (ALERT SOUND)
+         -------------------------------------------------- */
+      let audioCtx = null;
+
+      function getAudioContext() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      function playWarningAlarm() {
+        if (appState.isMuted) return;
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        try {
+          const now = ctx.currentTime;
+          const osc1 = ctx.createOscillator();
+          const gain1 = ctx.createGain();
+          osc1.type = 'sawtooth';
+          osc1.frequency.setValueAtTime(880, now);
+          gain1.gain.setValueAtTime(0.3, now);
+          gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+          osc1.connect(gain1);
+          gain1.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.18);
+
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.type = 'sawtooth';
+          osc2.frequency.setValueAtTime(1175, now + 0.2);
+          gain2.gain.setValueAtTime(0.35, now + 0.2);
+          gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
+          osc2.connect(gain2);
+          gain2.connect(ctx.destination);
+          osc2.start(now + 0.2);
+          osc2.stop(now + 0.4);
+        } catch (e) {
+          console.warn('Audio error', e);
+        }
+      }
+
+      /* --------------------------------------------------
+         TOAST NOTIFICATION
+         -------------------------------------------------- */
+      let toastTimer = null;
+      function showToast(msg) {
+        if (!dom.toast) return;
+        dom.toast.textContent = msg;
+        dom.toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => dom.toast.classList.remove('show'), 2600);
+      }
+
+      /* --------------------------------------------------
+         THEME & STORAGE PREFERENCES
+         -------------------------------------------------- */
+      function initPreferences() {
+        const storedMute = localStorage.getItem(STORAGE_KEY_MUTE);
+        if (storedMute !== null) appState.isMuted = (storedMute === 'true');
+        updateMuteUI();
+
+        const storedTheme = localStorage.getItem(STORAGE_KEY_THEME) || 'system';
+        setTheme(storedTheme, false);
+
+        try {
+          const rawEvents = localStorage.getItem(STORAGE_KEY_LOG);
+          if (rawEvents) {
+            appState.events = JSON.parse(rawEvents);
+            if (!Array.isArray(appState.events)) appState.events = [];
+          }
+        } catch (e) {
+          appState.events = [];
+        }
+
+        renderEventLogTable();
+        updateDetectionCounters();
+      }
+
+      function setTheme(theme, save = true) {
+        appState.currentTheme = theme;
+        if (save) localStorage.setItem(STORAGE_KEY_THEME, theme);
+
+        if (theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          dom.themeLabel.textContent = 'Dark';
+        } else if (theme === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          dom.themeLabel.textContent = 'Light';
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          dom.themeLabel.textContent = 'Auto';
+        }
+        requestAnimationFrame(renderChart);
+      }
+
+      function cycleTheme() {
+        if (appState.currentTheme === 'system') setTheme('dark');
+        else if (appState.currentTheme === 'dark') setTheme('light');
+        else setTheme('system');
+        showToast(`Theme: ${appState.currentTheme}`);
+      }
+
+      function toggleMute() {
+        getAudioContext();
+        appState.isMuted = !appState.isMuted;
+        localStorage.setItem(STORAGE_KEY_MUTE, String(appState.isMuted));
+        updateMuteUI();
+        showToast(appState.isMuted ? 'Alarm Sound Muted' : 'Alarm Sound Enabled');
+      }
+
+      function updateMuteUI() {
+        if (appState.isMuted) {
+          dom.soundLabel.textContent = 'Muted';
+          dom.soundIcon.innerHTML = `
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+            <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          `;
+        } else {
+          dom.soundLabel.textContent = 'Sound On';
+          dom.soundIcon.innerHTML = `
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          `;
+        }
+      }
+
+      /* --------------------------------------------------
+         CORE TELEMETRY PROCESSOR
+         -------------------------------------------------- */
+      function processNewData(data) {
+        if (!data || typeof data !== 'object') return;
+
+        const prev = appState.state;
+        appState.lastReading = Number.isFinite(data.reading) ? data.reading : 0;
+        appState.baseline = Number.isFinite(data.baseline) ? data.baseline : 790;
+        appState.baselineValid = (appState.baseline > ADC_MIN && appState.baseline < ADC_MAX);
+        appState.state = data.state || STATE_SOBER;
+        appState.ignitionAllowed = Boolean(data.ignition_allowed);
+        appState.lastPollTimestamp = new Date();
+
+        appState.readingsHistory.push({
+          time: Date.now(),
+          reading: appState.lastReading,
+          baseline: appState.baseline,
+          tripThresh: appState.baseline + MARGIN_ON,
+          clearThresh: appState.baseline + MARGIN_OFF
+        });
+
+        if (appState.readingsHistory.length > MAX_CHART_POINTS) {
+          appState.readingsHistory.shift();
+        }
+
+        if (prev !== null && prev !== appState.state) {
+          handleStateTransition(prev, appState.state);
+        } else if (prev === null) {
+          recordEvent(appState.state, 'Initial monitor connection');
+        }
+
+        appState.previousState = appState.state;
+
+        updateHeroCard();
+        updateGaugeAndMetrics();
+        updateHardwarePinsUI();
+        updateFooter();
+        renderChart();
+      }
+
+      function handleStateTransition(oldState, newState) {
+        recordEvent(newState, `State changed from "${oldState}"`);
+
+        if (newState === STATE_ALCOHOL) {
+          playWarningAlarm();
+          showToast('⚠️ ALCOHOL DETECTED! Ignition interlock locked.');
+        } else if (newState === STATE_SOBER) {
+          showToast('✅ SOBER: Vehicle ignition allowed.');
+        } else if (newState === STATE_FAULT) {
+          showToast('⚠️ SENSOR FAULT: Reading stuck at rail (<20 or >4090).');
+        } else if (newState === STATE_WARMING) {
+          showToast('⏳ MQ-3 Warming up (30s)... keep in clean air.');
+        }
+      }
+
+      function recordEvent(stateStr, note) {
+        const delta = appState.lastReading - appState.baseline;
+        const newRecord = {
+          id: Date.now() + Math.random().toString(36).substr(2, 4),
+          timestamp: new Date().toISOString(),
+          state: stateStr,
+          reading: appState.lastReading,
+          delta: delta,
+          ignitionAllowed: appState.ignitionAllowed,
+          note: note || ''
+        };
+
+        appState.events.unshift(newRecord);
+        if (appState.events.length > 200) appState.events.pop();
+
+        try {
+          localStorage.setItem(STORAGE_KEY_LOG, JSON.stringify(appState.events));
+        } catch (e) {
+          console.warn('LocalStorage error', e);
+        }
+
+        renderEventLogTable();
+        updateDetectionCounters();
+      }
+
+      function clearLog() {
+        if (!confirm('Clear the entire interlock event audit log?')) return;
+        appState.events = [];
+        try { localStorage.removeItem(STORAGE_KEY_LOG); } catch (e) {}
+        renderEventLogTable();
+        updateDetectionCounters();
+        showToast('Audit log cleared');
+      }
+
+      function updateDetectionCounters() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth();
+        const d = now.getDate();
+
+        let detectionsToday = 0;
+        appState.events.forEach(ev => {
+          if (ev.state === STATE_ALCOHOL) {
+            const evDate = new Date(ev.timestamp);
+            if (evDate.getFullYear() === y && evDate.getMonth() === m && evDate.getDate() === d) {
+              detectionsToday++;
+            }
+          }
+        });
+
+        dom.alcoholDetectionsCount.textContent = detectionsToday;
+        dom.totalEventsCount.textContent = appState.events.length;
+      }
+
+      /* --------------------------------------------------
+         HARDWARE GPIO VISUALIZATION (Pins 26, 27, 14, 34)
+         -------------------------------------------------- */
+      function updateHardwarePinsUI() {
+        const { state, ignitionAllowed, lastReading } = appState;
+        const isSober = (state === STATE_SOBER);
+
+        if (isSober) {
+          dom.hwPinGreen.className = 'pin-indicator green-on';
+          dom.hwPinGreenSub.textContent = 'HIGH (Sober)';
+        } else {
+          dom.hwPinGreen.className = 'pin-indicator';
+          dom.hwPinGreenSub.textContent = 'LOW (Off)';
+        }
+
+        if (state === STATE_ALCOHOL) {
+          dom.hwPinRed.className = 'pin-indicator red-on';
+          dom.hwPinRedSub.textContent = 'SOLID HIGH (Blocked)';
+        } else if (state === STATE_WARMING) {
+          dom.hwPinRed.className = 'pin-indicator red-on';
+          dom.hwPinRedSub.textContent = 'BLINKING (400ms)';
+        } else if (state === STATE_FAULT) {
+          dom.hwPinRed.className = 'pin-indicator red-on';
+          dom.hwPinRedSub.textContent = 'BLINKING (Fault)';
+        } else {
+          dom.hwPinRed.className = 'pin-indicator';
+          dom.hwPinRedSub.textContent = 'LOW (Off)';
+        }
+
+        if (ignitionAllowed) {
+          dom.hwPinRelay.className = 'pin-indicator relay-on';
+          dom.hwPinRelaySub.textContent = 'ENABLED (Closed)';
+        } else {
+          dom.hwPinRelay.className = 'pin-indicator';
+          dom.hwPinRelaySub.textContent = 'DISABLED (Open)';
+        }
+
+        const pinVoltage = ((lastReading / 4095) * 3.3).toFixed(2);
+        dom.hwPinAdcSub.textContent = `Raw: ${lastReading} (~${pinVoltage}V via divider)`;
+      }
+
+      /* --------------------------------------------------
+         HERO STATUS CARD RENDERING
+         -------------------------------------------------- */
+      function updateHeroCard() {
+        const { state, ignitionAllowed } = appState;
+        const card = dom.statusHeroCard;
+        card.className = 'status-hero-card';
+
+        let iconSvg = '';
+        let headline = '';
+        let explanation = '';
+        let relayLabel = ignitionAllowed ? 'IGNITION ALLOWED (RELAY CLOSED)' : 'IGNITION BLOCKED (RELAY OPEN)';
+        let relayIcon = ignitionAllowed
+          ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><circle cx="12" cy="16" r="1"></circle><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+
+        switch (state) {
+          case STATE_SOBER:
+            card.classList.add('state-ok');
+            headline = 'READY - Ignition Allowed';
+            explanation = 'Breath sample clean and verified. Differential is below safety threshold. Vehicle engine start enabled.';
+            iconSvg = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            `;
+            break;
+
+          case STATE_ALCOHOL:
+            card.classList.add('state-danger');
+            headline = 'ALCOHOL DETECTED - Ignition Blocked';
+            explanation = 'Ethanol concentration exceeded MARGIN_ON (+400 ADC above baseline). Ignition relay locked to prevent vehicle operation.';
+            iconSvg = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            `;
+            break;
+
+          case STATE_WARMING:
+            card.classList.add('state-warming');
+            headline = 'WARMING UP - Please Wait';
+            explanation = 'MQ-3 heater coil stabilizing (WARMUP_MS = 30s). Ignition remains locked until 80-sample clean air baseline calibration completes.';
+            iconSvg = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            `;
+            break;
+
+          case STATE_FAULT:
+            card.classList.add('state-fault');
+            headline = 'SENSOR FAULT - Ignition Blocked';
+            explanation = 'ADC analog reading is stuck at rail (< 20 or > 4090). Wire broken or shorted on GPIO 34. System requires 2s clean recovery.';
+            iconSvg = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            `;
+            break;
+
+          default:
+            card.classList.add('state-warming');
+            headline = state;
+            explanation = 'Monitoring sensor telemetry...';
+            iconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>`;
+            break;
+        }
+
+        dom.heroIconWrap.innerHTML = iconSvg;
+        dom.heroHeadline.textContent = headline;
+        dom.heroExplanation.textContent = explanation;
+        dom.heroRelayText.innerHTML = `${relayIcon} <span>${relayLabel}</span>`;
+      }
+
+      /* --------------------------------------------------
+         LIVE GAUGE, METRICS & TIMERS
+         -------------------------------------------------- */
+      function updateGaugeAndMetrics() {
+        const reading = appState.lastReading;
+        const baseline = appState.baseline;
+        const delta = reading - baseline;
+        const tripVal = baseline + MARGIN_ON;
+        const clearVal = baseline + MARGIN_OFF;
+
+        dom.valReading.textContent = reading;
+        dom.valBaseline.textContent = baseline;
+        dom.valTripThresh.textContent = tripVal;
+        dom.valClearThresh.textContent = clearVal;
+
+        if (dom.demoTripNum) dom.demoTripNum.textContent = tripVal;
+        if (dom.demoClearNum) dom.demoClearNum.textContent = clearVal;
+
+        if (appState.baselineValid) {
+          dom.baselineValidTag.textContent = 'BASELINE VALID';
+          dom.baselineValidTag.style.color = 'var(--color-ok)';
+          dom.baselineSubText.textContent = 'Calibrated clean air (80 avg)';
+        } else {
+          dom.baselineValidTag.textContent = 'BASELINE INVALID';
+          dom.baselineValidTag.style.color = 'var(--color-danger)';
+          dom.baselineSubText.textContent = 'Outside safe window (20-4090)';
+        }
+
+        // SVG Arc Gauge Update
+        const arcLength = Math.PI * 75;
+        const clampedDelta = Math.max(0, Math.min(800, delta));
+        const fraction = clampedDelta / 800;
+
+        dom.gaugeArcFill.style.strokeDasharray = `${arcLength}`;
+        dom.gaugeArcFill.style.strokeDashoffset = `${arcLength * (1 - fraction)}`;
+
+        let strokeColor = 'var(--color-ok)';
+        if (delta >= MARGIN_ON) {
+          strokeColor = 'var(--color-danger)';
+        } else if (delta >= MARGIN_OFF) {
+          strokeColor = 'var(--color-hysteresis)';
+        }
+        dom.gaugeArcFill.style.stroke = strokeColor;
+        dom.gaugeDeltaValue.textContent = delta >= 0 ? `+${delta}` : `${delta}`;
+
+        // Threshold indicator pill
+        if (delta >= MARGIN_ON) {
+          dom.thresholdPill.className = 'threshold-pill danger';
+          dom.thresholdPillDot.textContent = '▲';
+          dom.thresholdPillText.textContent = 'TRIPPED (≥ +400 Δ ALCOHOL)';
+        } else if (delta >= MARGIN_OFF) {
+          dom.thresholdPill.className = 'threshold-pill holding';
+          dom.thresholdPillDot.textContent = '●';
+          dom.thresholdPillText.textContent = 'Hysteresis Zone (+250 to +400 Δ)';
+        } else {
+          dom.thresholdPill.className = 'threshold-pill safe';
+          dom.thresholdPillDot.textContent = '●';
+          dom.thresholdPillText.textContent = 'Safe Clean Air (< +250 Δ)';
+        }
+
+        // Timers: HOLD_MS and FAULT_RECOVER_MS
+        const now = Date.now();
+        if (appState.state === STATE_FAULT) {
+          dom.timerLabel.textContent = 'FAULT_RECOVER_MS Debounce (2,000 ms)';
+          if (reading >= ADC_MIN && reading <= ADC_MAX) {
+            const rem = Math.max(0, appState.faultRecoveringUntil - now);
+            const sec = (rem / 1000).toFixed(1);
+            dom.holdTimerStatus.textContent = 'Signals in range: Verifying recovery...';
+            dom.holdTimerCountdown.textContent = `${sec}s`;
+            dom.holdTimerCountdown.style.color = 'var(--color-warning)';
+          } else {
+            dom.holdTimerStatus.textContent = 'Hardware fault active (< 20 or > 4090 ADC)';
+            dom.holdTimerCountdown.textContent = '2.0s';
+            dom.holdTimerCountdown.style.color = 'var(--color-danger)';
+          }
+        } else if (appState.state === STATE_ALCOHOL) {
+          dom.timerLabel.textContent = 'HOLD_MS Safety Timer (10,000 ms)';
+          if (delta < MARGIN_OFF) {
+            const remainingMs = Math.max(0, appState.holdingUntil - now);
+            const sec = (remainingMs / 1000).toFixed(1);
+            dom.holdTimerStatus.textContent = 'Lockout Active: Waiting 10s clear air hold';
+            dom.holdTimerCountdown.textContent = `${sec}s`;
+            dom.holdTimerCountdown.style.color = 'var(--color-danger)';
+          } else {
+            dom.holdTimerStatus.textContent = 'Lockout Active: Alcohol above clear threshold';
+            dom.holdTimerCountdown.textContent = '10.0s';
+            dom.holdTimerCountdown.style.color = 'var(--color-danger)';
+          }
+        } else {
+          dom.timerLabel.textContent = 'HOLD_MS Safety Timer (10,000 ms)';
+          dom.holdTimerStatus.textContent = 'Lockout Hold: INACTIVE (Ignition Enabled)';
+          dom.holdTimerCountdown.textContent = '0.0s';
+          dom.holdTimerCountdown.style.color = 'var(--text-muted)';
+        }
+      }
+
+      /* --------------------------------------------------
+         PLAIN CANVAS 5-MINUTE CHART
+         -------------------------------------------------- */
+      function renderChart() {
+        const canvas = dom.chartCanvas;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+
+        const rect = dom.chartContainer.getBoundingClientRect();
+        const width = Math.floor(rect.width);
+        const height = Math.floor(rect.height);
+
+        if (width <= 0 || height <= 0) return;
+
+        if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+          canvas.width = width * dpr;
+          canvas.height = height * dpr;
+        }
+
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, width, height);
+
+        const data = appState.readingsHistory;
+        const padding = { top: 22, right: 52, bottom: 24, left: 44 };
+        const plotWidth = width - padding.left - padding.right;
+        const plotHeight = height - padding.top - padding.bottom;
+
+        let minVal = 600;
+        let maxVal = 1400;
+
+        if (data.length > 0) {
+          for (let i = 0; i < data.length; i++) {
+            const v = data[i].reading;
+            const t = data[i].tripThresh;
+            const c = data[i].clearThresh;
+            const b = data[i].baseline;
+            if (v < minVal) minVal = v;
+            if (v > maxVal) maxVal = v;
+            if (t > maxVal) maxVal = t;
+            if (c > maxVal) maxVal = c;
+            if (b < minVal) minVal = b;
+          }
+        }
+        minVal = Math.max(0, Math.floor(minVal - 80));
+        maxVal = Math.ceil(maxVal + 100);
+
+        const getY = (val) => {
+          const ratio = (val - minVal) / (maxVal - minVal);
+          return padding.top + plotHeight - ratio * plotHeight;
+        };
+
+        const getX = (index, total) => {
+          if (total <= 1) return padding.left;
+          return padding.left + (index / (total - 1)) * plotWidth;
+        };
+
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+          (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+        const gridColor = isDark ? '#1e2c4a' : '#e2e8f0';
+        const textMuted = isDark ? '#94a3b8' : '#64748b';
+        const lineColor = isDark ? '#38bdf8' : '#0284c7';
+        const dangerColor = '#d64545';
+        const hystColor = '#f59e0b';
+        const baselineColor = isDark ? '#64748b' : '#94a3b8';
+
+        // Horizontal Grid Lines & Y Labels
+        const ySteps = 4;
+        ctx.font = '10px var(--font-family)';
+        ctx.fillStyle = textMuted;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        for (let i = 0; i <= ySteps; i++) {
+          const yVal = Math.round(minVal + ((maxVal - minVal) / ySteps) * i);
+          const yPos = getY(yVal);
+
+          ctx.beginPath();
+          ctx.strokeStyle = gridColor;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+          ctx.moveTo(padding.left, yPos);
+          ctx.lineTo(width - padding.right, yPos);
+          ctx.stroke();
+
+          ctx.fillText(String(yVal), padding.left - 8, yPos);
+        }
+
+        // Baseline Line
+        const currentBaseline = appState.baseline;
+        if (currentBaseline >= minVal && currentBaseline <= maxVal) {
+          const yBase = getY(currentBaseline);
+          ctx.beginPath();
+          ctx.strokeStyle = baselineColor;
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([4, 4]);
+          ctx.moveTo(padding.left, yBase);
+          ctx.lineTo(width - padding.right, yBase);
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = baselineColor;
+          ctx.fillText(`Base ${currentBaseline}`, width - padding.right + 4, yBase);
+        }
+
+        // MARGIN_OFF Line (Hysteresis reset: baseline + 250)
+        const currentClear = appState.baseline + MARGIN_OFF;
+        if (currentClear >= minVal && currentClear <= maxVal) {
+          const yClear = getY(currentClear);
+          ctx.beginPath();
+          ctx.strokeStyle = hystColor;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.moveTo(padding.left, yClear);
+          ctx.lineTo(width - padding.right, yClear);
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = hystColor;
+          ctx.fillText(`Off ${currentClear}`, width - padding.right + 4, yClear);
+        }
+
+        // MARGIN_ON Line (Trip threshold: baseline + 400)
+        const currentTrip = appState.baseline + MARGIN_ON;
+        if (currentTrip >= minVal && currentTrip <= maxVal) {
+          const yTrip = getY(currentTrip);
+          ctx.beginPath();
+          ctx.strokeStyle = dangerColor;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 5]);
+          ctx.moveTo(padding.left, yTrip);
+          ctx.lineTo(width - padding.right, yTrip);
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = dangerColor;
+          ctx.font = 'bold 10px var(--font-family)';
+          ctx.fillText(`Trip ${currentTrip}`, width - padding.right + 4, yTrip);
+        }
+
+        if (data.length < 2) {
+          ctx.fillStyle = textMuted;
+          ctx.textAlign = 'center';
+          ctx.font = '12px var(--font-family)';
+          ctx.fillText('Accumulating sensor trend telemetry...', width / 2, height / 2);
+          ctx.restore();
+          return;
+        }
+
+        ctx.beginPath();
+        ctx.setLineDash([]);
+        const total = data.length;
+
+        ctx.moveTo(getX(0, total), getY(data[0].reading));
+        for (let i = 1; i < total; i++) {
+          ctx.lineTo(getX(i, total), getY(data[i].reading));
+        }
+
+        const firstX = getX(0, total);
+        const lastX = getX(total - 1, total);
+        const bottomY = padding.top + plotHeight;
+
+        ctx.lineTo(lastX, bottomY);
+        ctx.lineTo(firstX, bottomY);
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(0, padding.top, 0, bottomY);
+        if (isDark) {
+          grad.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
+          grad.addColorStop(1, 'rgba(56, 189, 248, 0.01)');
+        } else {
+          grad.addColorStop(0, 'rgba(2, 132, 199, 0.22)');
+          grad.addColorStop(1, 'rgba(2, 132, 199, 0.01)');
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 2.5;
+        ctx.moveTo(getX(0, total), getY(data[0].reading));
+        for (let i = 1; i < total; i++) {
+          ctx.lineTo(getX(i, total), getY(data[i].reading));
+        }
+        ctx.stroke();
+
+        const latestPoint = data[total - 1];
+        const lastXPos = getX(total - 1, total);
+        const lastYPos = getY(latestPoint.reading);
+
+        ctx.beginPath();
+        ctx.arc(lastXPos, lastYPos, 5, 0, Math.PI * 2);
+        ctx.fillStyle = (latestPoint.reading >= latestPoint.tripThresh) ? dangerColor : lineColor;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      /* --------------------------------------------------
+         EVENT LOG TABLE RENDERING
+         -------------------------------------------------- */
+      function renderEventLogTable() {
+        const tbody = dom.logTableBody;
+        if (!tbody) return;
+
+        if (appState.events.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">
+                No state transitions logged yet. Any detected change will appear here.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        let html = '';
+        appState.events.forEach(ev => {
+          const date = new Date(ev.timestamp);
+          const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const dateStr = date.toLocaleDateString();
+
+          let stateBadgeClass = 'badge-ok';
+          if (ev.state === STATE_ALCOHOL) stateBadgeClass = 'badge-danger';
+          else if (ev.state === STATE_FAULT) stateBadgeClass = 'badge-danger';
+          else if (ev.state === STATE_WARMING) stateBadgeClass = 'badge-warning';
+
+          const relayHtml = ev.ignitionAllowed
+            ? `<span style="color:var(--color-ok); font-weight:700;">● ALLOWED</span>`
+            : `<span style="color:var(--color-danger); font-weight:700;">✕ BLOCKED</span>`;
+
+          const deltaStr = ev.delta >= 0 ? `+${ev.delta}` : `${ev.delta}`;
+
+          html += `
+            <tr>
+              <td><strong>${timeStr}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">(${dateStr})</span></td>
+              <td><span class="badge ${stateBadgeClass}">${escapeHtml(ev.state)}</span></td>
+              <td><code>${ev.reading}</code></td>
+              <td><code>${deltaStr}</code></td>
+              <td>${relayHtml}</td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function updateFooter() {
+        if (appState.lastPollTimestamp) {
+          const timeStr = appState.lastPollTimestamp.toLocaleTimeString();
+          dom.footerLastUpdate.textContent = `${timeStr} (${appState.isOnline ? 'Online' : 'Simulated'})`;
+        }
+        dom.footerBaselineVal.textContent = `${appState.baseline} ADC (80-sample avg)`;
+      }
+
+      function updateSessionUptime() {
+        const diffMs = Date.now() - appState.sessionStartTime;
+        const totalSec = Math.floor(diffMs / 1000);
+        const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+        const secs = String(totalSec % 60).padStart(2, '0');
+        dom.monitoringUptime.textContent = `${hrs}:${mins}:${secs}`;
+      }
+
+      /* --------------------------------------------------
+         HTTP CLIENT POLLING /status
+         -------------------------------------------------- */
+      async function pollStatus() {
+        if (appState.isDemoMode) {
+          runDemoStep();
+          return;
+        }
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+          const response = await fetch('/status', {
+            cache: 'no-store',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const data = await response.json();
+          setOnlineState(true);
+          processNewData(data);
+        } catch (error) {
+          setOnlineState(false);
+        }
+      }
+
+      function setOnlineState(online) {
+        appState.isOnline = online;
+        if (online) {
+          dom.connectionDot.className = 'status-dot online';
+          dom.connectionText.textContent = appState.isDemoMode ? 'Demo Simulator Active' : 'ESP32 Online (/status)';
+          dom.offlineBanner.classList.remove('visible');
+        } else {
+          dom.connectionDot.className = 'status-dot offline';
+          dom.connectionText.textContent = 'Device Offline';
+          dom.offlineBanner.classList.add('visible');
+        }
+      }
+
+      /* --------------------------------------------------
+         EXACT C++ REVISION FIRMWARE SIMULATOR
+         -------------------------------------------------- */
+      function toggleDemoMode() {
+        appState.isDemoMode = !appState.isDemoMode;
+
+        if (appState.isDemoMode) {
+          dom.demoToggleBtn.classList.add('active');
+          dom.demoBtnLabel.textContent = 'Demo Mode: ON';
+          dom.demoBar.classList.add('visible');
+          dom.offlineBanner.classList.remove('visible');
+          setOnlineState(true);
+          showToast('🧪 Firmware Simulator Activated');
+        } else {
+          dom.demoToggleBtn.classList.remove('active');
+          dom.demoBtnLabel.textContent = 'Demo Mode: OFF';
+          dom.demoBar.classList.remove('visible');
+          appState.demoSimulateOffline = false;
+          showToast('ESP32 /status Polling Resumed');
+        }
+      }
+
+      function runDemoStep() {
+        if (appState.demoSimulateOffline) {
+          setOnlineState(false);
+          return;
+        }
+        setOnlineState(true);
+
+        const now = Date.now();
+
+        if (appState.demoAutoCycle) {
+          appState.demoCycleIndex++;
+          if (appState.demoCycleIndex > 28) appState.demoCycleIndex = 0;
+
+          if (appState.demoCycleIndex < 5) {
+            appState.demoRaw = 620 + Math.floor(Math.random() * 20);
+          } else if (appState.demoCycleIndex < 12) {
+            appState.demoRaw = 790 + Math.floor(Math.random() * 20);
+          } else if (appState.demoCycleIndex < 18) {
+            appState.demoRaw = 1450 + Math.floor(Math.random() * 60);
+          } else if (appState.demoCycleIndex < 22) {
+            appState.demoRaw = 1010 + Math.floor(Math.random() * 15);
+          } else {
+            appState.demoRaw = 800 + Math.floor(Math.random() * 15);
+          }
+          dom.demoAdcSlider.value = appState.demoRaw;
+          dom.demoSliderVal.textContent = appState.demoRaw;
+        }
+
+        const raw = appState.demoRaw;
+        appState.demoSmoothed = (appState.demoSmoothed === 0) ? raw : Math.round((appState.demoSmoothed * 9 + raw) / 10);
+
+        const faulty = (raw < ADC_MIN || raw > ADC_MAX);
+
+        if (appState.state === STATE_WARMING) {
+          if (now - appState.demoBootTime >= WARMUP_MS) {
+            appState.baseline = 790;
+            appState.demoBaselineValid = (appState.baseline > ADC_MIN && appState.baseline < ADC_MAX);
+            if (appState.demoBaselineValid) {
+              appState.state = STATE_SOBER;
+            } else {
+              appState.state = STATE_FAULT;
+              appState.demoFaultRecoverStart = 0;
+            }
+          }
+        } else if (faulty) {
+          appState.state = STATE_FAULT;
+          appState.demoFaultRecoverStart = 0;
+        } else if (appState.state === STATE_FAULT) {
+          if (appState.demoFaultRecoverStart === 0) {
+            appState.demoFaultRecoverStart = now;
+            appState.faultRecoveringUntil = now + FAULT_RECOVER_MS;
+          }
+          if (now - appState.demoFaultRecoverStart >= FAULT_RECOVER_MS) {
+            if (!appState.demoBaselineValid) {
+              appState.baseline = 790;
+              appState.demoBaselineValid = true;
+            }
+            appState.state = STATE_SOBER;
+            appState.demoFaultRecoverStart = 0;
+          }
+        } else {
+          const diff = appState.demoSmoothed - appState.baseline;
+
+          if (diff > MARGIN_ON) {
+            appState.state = STATE_ALCOHOL;
+            appState.demoLastHighTime = now;
+            appState.holdingUntil = now + HOLD_MS;
+          } else if (appState.state === STATE_ALCOHOL) {
+            if (diff < MARGIN_OFF && (now - appState.demoLastHighTime >= HOLD_MS)) {
+              appState.state = STATE_SOBER;
+            }
+          }
+        }
+
+        const ignitionAllowed = (appState.state === STATE_SOBER);
+
+        processNewData({
+          state: appState.state,
+          reading: appState.demoSmoothed,
+          baseline: appState.baseline,
+          ignition_allowed: ignitionAllowed
+        });
+      }
+
+      function setDemoPreset(targetState) {
+        appState.demoSimulateOffline = false;
+        const now = Date.now();
+
+        if (targetState === STATE_SOBER) {
+          appState.demoRaw = 805;
+          appState.demoSmoothed = 805;
+          appState.state = STATE_SOBER;
+          appState.demoBaselineValid = true;
+        } else if (targetState === STATE_ALCOHOL) {
+          appState.demoRaw = 1420;
+          appState.demoSmoothed = 1420;
+          appState.state = STATE_ALCOHOL;
+          appState.demoLastHighTime = now;
+          appState.holdingUntil = now + HOLD_MS;
+        } else if (targetState === STATE_WARMING) {
+          appState.demoRaw = 620;
+          appState.demoSmoothed = 620;
+          appState.state = STATE_WARMING;
+          appState.demoBootTime = now;
+        } else if (targetState === STATE_FAULT) {
+          appState.demoRaw = 4095;
+          appState.demoSmoothed = 4095;
+          appState.state = STATE_FAULT;
+          appState.demoFaultRecoverStart = 0;
+        }
+
+        dom.demoAdcSlider.value = appState.demoRaw;
+        dom.demoSliderVal.textContent = appState.demoRaw;
+
+        dom.demoStateButtons.forEach(btn => {
+          if (btn.getAttribute('data-demo-state') === targetState) {
+            btn.classList.add('selected');
+          } else {
+            btn.classList.remove('selected');
+          }
+        });
+
+        runDemoStep();
+      }
+
+      function initEvents() {
+        document.addEventListener('click', () => getAudioContext(), { once: true });
+
+        dom.soundBtn.addEventListener('click', toggleMute);
+        dom.themeBtn.addEventListener('click', cycleTheme);
+        dom.demoToggleBtn.addEventListener('click', toggleDemoMode);
+
+        dom.activateDemoFromBanner.addEventListener('click', () => {
+          if (!appState.isDemoMode) toggleDemoMode();
+        });
+
+        dom.demoStateButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const st = btn.getAttribute('data-demo-state');
+            setDemoPreset(st);
+          });
+        });
+
+        dom.demoAdcSlider.addEventListener('input', (e) => {
+          const val = parseInt(e.target.value, 10);
+          dom.demoSliderVal.textContent = val;
+          appState.demoRaw = val;
+          runDemoStep();
+        });
+
+        dom.demoToggleOffline.addEventListener('click', () => {
+          appState.demoSimulateOffline = !appState.demoSimulateOffline;
+          dom.demoToggleOffline.classList.toggle('selected', appState.demoSimulateOffline);
+          setOnlineState(!appState.demoSimulateOffline);
+        });
+
+        dom.demoAutoCycleBtn.addEventListener('click', () => {
+          appState.demoAutoCycle = !appState.demoAutoCycle;
+          dom.demoAutoCycleBtn.classList.toggle('selected', appState.demoAutoCycle);
+          dom.demoAutoCycleBtn.textContent = appState.demoAutoCycle ? 'Auto-Cycle: ON' : 'Auto-Cycle: OFF';
+          showToast(appState.demoAutoCycle ? 'Auto Scenario Cycling ON' : 'Auto Cycling OFF');
+        });
+
+        dom.clearLogBtn.addEventListener('click', clearLog);
+
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => renderChart(), 100);
+        });
+      }
+
+      function init() {
+        initPreferences();
+        initEvents();
+
+        const now = Date.now();
+        for (let i = 20; i >= 0; i--) {
+          appState.readingsHistory.push({
+            time: now - i * 1000,
+            reading: 795 + Math.floor(Math.sin(i) * 8),
+            baseline: 790,
+            tripThresh: 1190,
+            clearThresh: 1040
+          });
+        }
+
+        processNewData({
+          state: STATE_SOBER,
+          reading: 812,
+          baseline: 790,
+          ignition_allowed: true
+        });
+
+        setInterval(pollStatus, POLL_INTERVAL_MS);
+        setInterval(updateSessionUptime, 1000);
+
+        if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          fetch('/status', { cache: 'no-store' }).catch(() => {
+            if (!appState.isDemoMode) toggleDemoMode();
+          });
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+
+    })();
+  </script>
+</body>
+</html>
