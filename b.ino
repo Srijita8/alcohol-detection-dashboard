@@ -1,6 +1,10 @@
-// Alcohol detection ignition lock - ESP32 + MQ-3
-// No buzzer, no Wi-Fi, no Bluetooth.
-// Green LED = OK, Red LED = blocked, relay = ignition enable
+// Alcohol detection ignition lock - ESP32 + MQ-3, with Wi-Fi hotspot for the dashboard
+// Green LED = OK, Red LED = blocked, relay = ignition enable (no buzzer, no Bluetooth)
+//
+// The ESP32 creates its own Wi-Fi network (no router needed):
+//   Network name: AlcoholLock-ESP32
+//   Password:     lock12345   (change below; must be at least 8 characters)
+//   Address:      http://192.168.4.1/status
 //
 // MQ-3 AO is connected through a 10k / 10k divider:
 //   AO --[10k]--+-- GPIO 34
@@ -8,7 +12,13 @@
 //             [10k]
 //               |
 //              GND
-// A 5V sensor output becomes about 2.5V at the pin, which is safe.
+
+#include <WiFi.h>
+#include <WebServer.h>
+
+// ---------- Wi-Fi hotspot ----------
+const char* AP_SSID = "AlcoholLock-ESP32";
+const char* AP_PASS = "lock12345";
 
 // ---------- Pins ----------
 const int PIN_MQ3   = 34;
@@ -32,6 +42,8 @@ const unsigned long FAULT_RECOVER_MS = 2000; // valid readings needed before lea
 
 enum State { WARMUP, SOBER, ALCOHOL, FAULT };
 State state = WARMUP;
+
+WebServer server(80);
 
 int baseline = 0;
 bool baselineValid = false;
@@ -83,6 +95,22 @@ bool takeBaseline() {
   return baselineValid;
 }
 
+// Wi-Fi: the dashboard reads this JSON once per second.
+// Read-only: it reports status and cannot change the relay.
+void handleStatus() {
+  String j = "{\"state\":\"" + String(stateName()) + "\",\"reading\":" + String(smoothed) +
+             ",\"baseline\":" + String(baseline) + ",\"ignition_allowed\":" +
+             String(state == SOBER ? "true" : "false") + "}";
+  server.sendHeader("Access-Control-Allow-Origin", "*");   // lets the dashboard file read it
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json", j);
+}
+
+void handleRoot() {
+  server.send(200, "text/plain",
+    "Alcohol Lock ESP32 is running.\nStatus data: http://192.168.4.1/status\n");
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_MQ3, INPUT);
@@ -93,11 +121,24 @@ void setup() {
   analogReadResolution(12);           // 0-4095
   analogSetPinAttenuation(PIN_MQ3, ADC_11db);
 
+  // Start the ESP32's own Wi-Fi network. The lock works even if nobody connects.
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(AP_SSID, AP_PASS);
+  server.on("/", handleRoot);
+  server.on("/status", handleStatus);
+  server.begin();
+  Serial.print("Wi-Fi hotspot: ");
+  Serial.print(AP_SSID);
+  Serial.print("  address: http://");
+  Serial.println(WiFi.softAPIP());    // normally 192.168.4.1
+
   bootTime = millis();
   Serial.println("Warming up sensor... keep it in clean air.");
 }
 
 void loop() {
+  server.handleClient();
+
   unsigned long now = millis();
   if (now - lastSample >= 100) {
     lastSample = now;
