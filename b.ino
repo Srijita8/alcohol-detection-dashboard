@@ -17,8 +17,8 @@
 #include <WebServer.h>
 
 // ---------- Wi-Fi hotspot ----------
-const char* AP_SSID = "AlcoholLock-ESP32";
-const char* AP_PASS = "lock12345";
+const char* AP_SSID = "LAPTOP-CSLHP9KT 5352";
+const char* AP_PASS = "1vG252(8";
 
 // ---------- Pins ----------
 const int PIN_MQ3   = 34;
