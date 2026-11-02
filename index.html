@@ -900,12 +900,13 @@
           <h1>Alcohol Lock Dashboard</h1>
           <div class="connection-status">
             <span class="status-dot offline" id="connectionDot" aria-hidden="true"></span>
-            <span id="connectionText">Connecting to ESP32...</span>
+            <span id="connectionText">Click Connect USB</span>
           </div>
         </div>
       </div>
 
       <div class="header-actions">
+        <button class="btn" id="usbBtn" title="Connect the ESP32 over USB">Connect USB</button>
         <!-- Audio Mute Toggle -->
         <button class="btn" id="soundBtn" title="Toggle Alarm Sound" aria-label="Toggle Alarm Sound">
           <svg id="soundIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -938,7 +939,7 @@
       <div class="offline-banner-left">
         <div class="offline-spinner"></div>
         <div>
-          <strong>Connecting to ESP32:</strong> Polling <code>/status</code> every 1s. Ensure you are connected to the <strong>AlcoholLock-ESP32</strong> Wi-Fi network.
+          <strong>Not connected:</strong> Close the Arduino Serial Monitor, plug in the ESP32, then click <strong>Connect USB</strong> and choose its COM port (use Chrome or Edge).
         </div>
       </div>
     </div>
@@ -2076,36 +2077,72 @@
       /* --------------------------------------------------
          REAL HTTP POLLING LOOP (/status)
          -------------------------------------------------- */
-      async function pollStatus() {
+      let serialPort = null;
+      let lastLineTime = 0;
+
+      async function connectUsb() {
+        if (!('serial' in navigator)) { showToast('Use Chrome or Edge'); return; }
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-          const response = await fetch('/status', {
-            cache: 'no-store',
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-          const data = await response.json();
-          setOnlineState(true);
-          processNewData(data);
-        } catch (error) {
-          setOnlineState(false);
+          serialPort = await navigator.serial.requestPort();
+          await serialPort.open({ baudRate: 115200 });
+          document.getElementById('usbBtn').textContent = 'USB connected';
+          readLoop();
+        } catch (e) {
+          showToast('Could not open the port. Close the Arduino Serial Monitor.');
         }
+      }
+
+      async function readLoop() {
+        const decoder = new TextDecoderStream();
+        serialPort.readable.pipeTo(decoder.writable).catch(() => {});
+        const reader = decoder.readable.getReader();
+        let buf = '';
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += value;
+            let idx;
+            while ((idx = buf.indexOf('\n')) >= 0) {
+              handleLine(buf.slice(0, idx).trim());
+              buf = buf.slice(idx + 1);
+            }
+          }
+        } catch (e) {
+        } finally {
+          try { reader.releaseLock(); } catch (e) {}
+          setOnlineState(false);
+          document.getElementById('usbBtn').textContent = 'Connect USB';
+        }
+      }
+
+      function handleLine(line) {
+        const m = line.match(/^raw=(-?\d+) smooth=(-?\d+) base=(-?\d+) state=(.+)$/);
+        if (!m) return;
+        lastLineTime = Date.now();
+        const state = m[4].trim();
+        setOnlineState(true);
+        processNewData({
+          reading: parseInt(m[2], 10),
+          baseline: parseInt(m[3], 10),
+          state: state,
+          ignition_allowed: state === STATE_SOBER
+        });
+      }
+
+      function checkStale() {
+        if (appState.isOnline && Date.now() - lastLineTime > 4000) setOnlineState(false);
       }
 
       function setOnlineState(online) {
         appState.isOnline = online;
         if (online) {
           dom.connectionDot.className = 'status-dot online';
-          dom.connectionText.textContent = 'ESP32 Connected (/status)';
+          dom.connectionText.textContent = 'ESP32 Connected (USB)';
           dom.offlineBanner.classList.add('hidden');
         } else {
           dom.connectionDot.className = 'status-dot offline';
-          dom.connectionText.textContent = 'Connecting to ESP32...';
+          dom.connectionText.textContent = 'Click Connect USB';
           dom.offlineBanner.classList.remove('hidden');
         }
       }
@@ -2128,9 +2165,8 @@
         initPreferences();
         initEvents();
 
-        // Start real polling loop immediately
-        pollStatus();
-        setInterval(pollStatus, POLL_INTERVAL_MS);
+        document.getElementById('usbBtn').addEventListener('click', connectUsb);
+        setInterval(checkStale, 1000);
         setInterval(updateSessionUptime, 1000);
       }
 
