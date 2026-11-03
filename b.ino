@@ -23,8 +23,8 @@ const bool RELAY_ACTIVE_LOW = false;
 
 // ---------- Interlock Calibration & Timing Settings ----------
 const unsigned long WARMUP_MS        = 30000; // 30s sensor preheat & stabilization
-const int           MARGIN_ON        = 100;   // Trip threshold: +400 counts above baseline => DRUNK (~0.08% BAC)
-const int           MARGIN_OFF       = 60;   // Reset threshold: +250 counts above baseline (hysteresis ~0.05% BAC)
+const int           MARGIN_ON        = 400;   // Trip threshold: +400 counts above baseline => DRUNK (~0.08% BAC)
+const int           MARGIN_OFF       = 250;   // Reset threshold: +250 counts above baseline (hysteresis ~0.05% BAC)
 const unsigned long HOLD_MS          = 10000; // 10s mandatory lockout hold after alcohol clears
 const int           ADC_MIN          = 20;    // Sensor disconnect or short to GND
 const int           ADC_MAX          = 4090;  // Sensor rail short or open divider
