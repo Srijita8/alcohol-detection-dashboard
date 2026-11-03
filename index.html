@@ -2,2181 +2,2048 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="description" content="ESP32 Alcohol Detection Ignition Lock Dashboard">
-  <title>Alcohol Lock Dashboard | Live Hardware Telemetry</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Breathalyzer & Sobriety Assessment Dashboard</title>
   <style>
-    /* ====================================================
-       THEME & COLOR SPECIFICATIONS
-       ==================================================== */
     :root {
-      --color-ok: #2e9e5b;
-      --color-ok-bg: rgba(46, 158, 91, 0.12);
-      --color-ok-border: rgba(46, 158, 91, 0.35);
-
-      --color-danger: #d64545;
-      --color-danger-bg: rgba(214, 69, 69, 0.12);
-      --color-danger-border: rgba(214, 69, 69, 0.35);
-
-      --color-warning: #e0a020;
-      --color-warning-bg: rgba(224, 160, 32, 0.14);
-      --color-warning-border: rgba(224, 160, 32, 0.4);
-
-      --color-hysteresis: #f59e0b;
-      --color-offline: #64748b;
-
-      /* Light Theme (Default) */
-      --bg-page: #f1f5f9;
-      --bg-card: #ffffff;
-      --bg-card-subtle: #f8fafc;
-      --border-card: #cbd5e1;
-      --border-subtle: #e2e8f0;
-      --text-main: #0f172a;
+      --bg-primary: #0b0f17;
+      --bg-surface: #141c2b;
+      --bg-card: #1b263b;
+      --bg-card-hover: #22324e;
+      --border-color: #2a3b56;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
       --text-muted: #64748b;
-      --text-subtle: #94a3b8;
-
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
-      --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1);
-
-      --chart-grid: #e2e8f0;
-      --chart-line: #0284c7;
-      --chart-fill: rgba(2, 132, 199, 0.14);
-
+      
+      --color-sober: #2e9e5b;
+      --color-sober-glow: rgba(46, 158, 91, 0.4);
+      --color-drunk: #d64545;
+      --color-drunk-glow: rgba(214, 69, 69, 0.4);
+      --color-caution: #e0a020;
+      --color-caution-glow: rgba(224, 160, 32, 0.4);
+      --color-blue: #3b82f6;
+      
       --radius-sm: 8px;
       --radius-md: 14px;
-      --radius-lg: 20px;
-      --radius-pill: 9999px;
-
-      --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    }
-
-    /* Dark Mode via prefers-color-scheme */
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg-page: #0b1120;
-        --bg-card: #131d33;
-        --bg-card-subtle: #1a2744;
-        --border-card: #24355a;
-        --border-subtle: #1e2c4a;
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-        --text-subtle: #64748b;
-
-        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-        --shadow-md: 0 4px 10px rgba(0,0,0,0.4);
-        --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
-
-        --chart-grid: #1e2c4a;
-        --chart-line: #38bdf8;
-        --chart-fill: rgba(56, 189, 248, 0.15);
-      }
-    }
-
-    [data-theme="dark"] {
-      --bg-page: #0b1120;
-      --bg-card: #131d33;
-      --bg-card-subtle: #1a2744;
-      --border-card: #24355a;
-      --border-subtle: #1e2c4a;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-subtle: #64748b;
-
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 10px rgba(0,0,0,0.4);
-      --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
-
-      --chart-grid: #1e2c4a;
-      --chart-line: #38bdf8;
-      --chart-fill: rgba(56, 189, 248, 0.15);
+      --radius-lg: 22px;
+      --shadow-sm: 0 3px 8px rgba(0,0,0,0.3);
+      --shadow-lg: 0 12px 30px -5px rgba(0,0,0,0.6);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     [data-theme="light"] {
-      --bg-page: #f1f5f9;
-      --bg-card: #ffffff;
-      --bg-card-subtle: #f8fafc;
-      --border-card: #cbd5e1;
-      --border-subtle: #e2e8f0;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --text-subtle: #94a3b8;
-
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --bg-primary: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-card-hover: #e2e8f0;
+      --border-color: #cbd5e1;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --shadow-sm: 0 2px 6px rgba(0,0,0,0.06);
       --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1);
-
-      --chart-grid: #e2e8f0;
-      --chart-line: #0284c7;
-      --chart-fill: rgba(2, 132, 199, 0.14);
     }
 
-    *, *::before, *::after {
+    * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       font-family: var(--font-family);
-      background-color: var(--bg-page);
-      color: var(--text-main);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      line-height: 1.5;
       padding: 16px;
       transition: background-color 0.3s ease, color 0.3s ease;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    @media (min-width: 768px) {
-      body {
-        padding: 24px 32px;
-      }
     }
 
     .container {
-      width: 100%;
-      max-width: 1060px;
+      max-width: 1040px;
       margin: 0 auto;
+      width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
-    /* ====================================================
-       1. HEADER
-       ==================================================== */
-    header.app-header {
+    /* Header */
+    header {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      box-shadow: var(--shadow-sm);
     }
 
-    .brand-section {
+    .brand {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
     .brand-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #0284c7, #2563eb);
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #047857);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-      flex-shrink: 0;
+      font-size: 20px;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
     }
 
-    .brand-icon svg {
-      width: 26px;
-      height: 26px;
-    }
-
-    .brand-title h1 {
-      font-size: 1.35rem;
-      font-weight: 800;
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
       letter-spacing: -0.02em;
-      line-height: 1.2;
     }
 
-    .connection-status {
+    .brand-text p {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .conn-status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
       font-size: 0.82rem;
       font-weight: 600;
-      color: var(--text-muted);
-      margin-top: 2px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
     }
 
     .status-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background-color: var(--color-offline);
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      background-color: var(--text-muted);
+      transition: background-color 0.3s ease;
     }
 
     .status-dot.online {
-      background-color: var(--color-ok);
-      box-shadow: 0 0 0 3px rgba(46, 158, 91, 0.25);
+      background-color: var(--color-sober);
+      box-shadow: 0 0 10px var(--color-sober);
     }
 
-    .status-dot.offline {
-      background-color: var(--color-offline);
-      box-shadow: none;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+    .status-dot.demo {
+      background-color: var(--color-caution);
+      box-shadow: 0 0 10px var(--color-caution);
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      color: var(--text-main);
-      padding: 8px 14px;
-      border-radius: var(--radius-sm);
+      gap: 8px;
+      font-family: inherit;
       font-size: 0.85rem;
       font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
       cursor: pointer;
-      user-select: none;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
-      min-height: 40px;
+      user-select: none;
     }
 
-    .btn:hover {
-      background: var(--bg-card-subtle);
-      border-color: var(--text-muted);
+    .btn-primary {
+      background: var(--color-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
       transform: translateY(-1px);
     }
 
-    .btn:active {
-      transform: translateY(0);
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border-color);
+      color: var(--text-primary);
     }
 
-    /* ====================================================
-       OFFLINE / RECONNECTING BANNER
-       ==================================================== */
-    .offline-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      background-color: #ef4444;
-      color: #ffffff;
-      padding: 12px 18px;
-      border-radius: var(--radius-md);
-      font-weight: 600;
+    .btn-outline:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .btn-success {
+      background: #16a34a;
+      color: white;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+    }
+
+    .btn-success:hover {
+      background: #15803d;
+      transform: translateY(-1px);
+    }
+
+    .btn-test {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
       font-size: 0.95rem;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-      animation: bannerSlide 0.3s ease;
+      padding: 10px 20px;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
     }
 
-    .offline-banner.hidden {
-      display: none;
+    .btn-test:hover {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      transform: translateY(-2px);
     }
 
-    .offline-banner-left {
-      display: flex;
+    .icon-btn {
+      padding: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-    }
-
-    .offline-spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255, 255, 255, 0.35);
-      border-top-color: #ffffff;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    @keyframes bannerSlide {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ====================================================
-       HARDWARE GPIO PIN STATUS PANEL (Real Hardware Pins)
-       ==================================================== */
-    .hardware-pins-bar {
+      justify-content: center;
       background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: var(--radius-md);
-      padding: 12px 18px;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-card-hover);
+    }
+
+    /* Browser Alert Banner */
+    .banner {
+      background: #854d0e;
+      color: #fef08a;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      display: none;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ========================================================
+       PRIMARY HERO CARD: SOBRIETY VERDICT (DRUNK OR SOBER)
+       ======================================================== */
+    .hero-verdict-card {
+      background: var(--bg-surface);
+      border: 3px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 30px 24px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* SOBER STATE */
+    .hero-verdict-card.state-sober {
+      background: linear-gradient(180deg, rgba(46, 158, 91, 0.22) 0%, var(--bg-surface) 100%);
+      border-color: var(--color-sober);
+    }
+
+    /* DRUNK STATE */
+    .hero-verdict-card.state-drunk {
+      background: linear-gradient(180deg, rgba(214, 69, 69, 0.28) 0%, var(--bg-surface) 100%);
+      border-color: var(--color-drunk);
+      animation: alertPulse 1.5s infinite;
+    }
+
+    /* WARMUP STATE */
+    .hero-verdict-card.state-warmup {
+      background: linear-gradient(180deg, rgba(224, 160, 32, 0.22) 0%, var(--bg-surface) 100%);
+      border-color: var(--color-caution);
+    }
+
+    /* SENSOR FAULT STATE */
+    .hero-verdict-card.state-fault {
+      background: linear-gradient(180deg, rgba(185, 28, 28, 0.3) 0%, var(--bg-surface) 100%);
+      border-color: #b91c1c;
+      animation: flashBorder 1s infinite alternate;
+    }
+
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 18px var(--color-drunk-glow); }
+      50% { box-shadow: 0 0 45px var(--color-drunk-glow); }
+    }
+
+    @keyframes flashBorder {
+      0% { border-color: #b91c1c; }
+      100% { border-color: #f87171; }
+    }
+
+    .verdict-header-row {
       display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
       flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-around;
-      gap: 16px;
-      box-shadow: var(--shadow-sm);
     }
 
-    .pin-status-item {
+    .verdict-pill {
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+    }
+
+    .verdict-title {
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .verdict-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 680px;
+      margin: 0 auto 20px auto;
+    }
+
+    /* Overview Highlights Grid */
+    .overview-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 720px;
+      margin: 0 auto 20px auto;
+    }
+
+    @media (max-width: 640px) {
+      .overview-strip {
+        grid-template-columns: 1fr;
+      }
+      .verdict-title {
+        font-size: 1.8rem;
+      }
+    }
+
+    .overview-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .overview-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .overview-value {
+      font-size: 1.35rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Physical Relay and Virtual LEDs */
+    .interlock-bar {
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      gap: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      max-width: 580px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+    }
+
+    .interlock-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 0.85rem;
+      font-weight: 600;
     }
 
-    .pin-indicator {
-      width: 14px;
-      height: 14px;
+    .hw-led {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      background: var(--border-card);
-      border: 2px solid rgba(0,0,0,0.1);
-      transition: all 0.2s ease;
-      flex-shrink: 0;
+      background: #334155;
+      transition: all 0.25s ease;
     }
 
-    .pin-indicator.green-on {
-      background: #22c55e;
-      box-shadow: 0 0 10px #22c55e;
+    .hw-led.green-on {
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
     }
 
-    .pin-indicator.red-on {
+    .hw-led.red-on {
       background: #ef4444;
       box-shadow: 0 0 10px #ef4444;
     }
 
-    .pin-indicator.relay-on {
-      background: #0ea5e9;
-      box-shadow: 0 0 10px #0ea5e9;
-    }
-
-    .pin-info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .pin-title {
-      font-weight: 700;
-      color: var(--text-main);
-    }
-
-    .pin-sub {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    /* ====================================================
-       2. PRIMARY STATUS HERO CARD (Distance-Readable)
-       ==================================================== */
-    .status-hero-card {
-      background: var(--bg-card);
-      border: 2px solid var(--border-card);
-      border-radius: var(--radius-lg);
-      padding: 24px 20px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: var(--shadow-md);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-    }
-
-    @media (min-width: 768px) {
-      .status-hero-card {
-        padding: 34px 28px;
-      }
-    }
-
-    .status-hero-card.state-ok {
-      background-color: var(--color-ok);
-      border-color: #24834b;
-      color: #ffffff;
-      box-shadow: 0 10px 28px rgba(46, 158, 91, 0.35);
-    }
-
-    .status-hero-card.state-danger {
-      background-color: var(--color-danger);
-      border-color: #b93232;
-      color: #ffffff;
-      box-shadow: 0 10px 30px rgba(214, 69, 69, 0.4);
-      animation: alertPulse 2s infinite ease-in-out;
-    }
-
-    .status-hero-card.state-warming {
-      background-color: var(--color-warning);
-      border-color: #be820e;
-      color: #1a1608;
-      box-shadow: 0 10px 28px rgba(224, 160, 32, 0.3);
-      animation: warmBlink 1.4s infinite ease-in-out;
-    }
-
-    .status-hero-card.state-fault {
-      background-color: var(--color-danger);
-      border-color: #991b1b;
-      color: #ffffff;
-      box-shadow: 0 10px 28px rgba(214, 69, 69, 0.4);
-      animation: faultBlink 0.8s infinite alternate;
-    }
-
-    @keyframes alertPulse {
-      0%, 100% { box-shadow: 0 10px 28px rgba(214, 69, 69, 0.4); }
-      50% { box-shadow: 0 14px 44px rgba(214, 69, 69, 0.7); }
-    }
-
-    @keyframes warmBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.84; }
-    }
-
-    @keyframes faultBlink {
-      0% { filter: brightness(1); }
-      100% { filter: brightness(0.85); }
-    }
-
-    .hero-icon-circle {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(6px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: currentColor;
-    }
-
-    .hero-icon-circle svg {
-      width: 42px;
-      height: 42px;
-    }
-
-    .hero-headline {
-      font-size: 1.65rem;
+    .relay-badge {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
       font-weight: 800;
-      letter-spacing: -0.01em;
-      line-height: 1.2;
-      text-transform: uppercase;
-      word-break: break-word;
+      letter-spacing: 0.04em;
     }
 
-    @media (min-width: 768px) {
-      .hero-headline {
-        font-size: 2.15rem;
-      }
+    .relay-badge.allowed {
+      background: rgba(46, 158, 91, 0.25);
+      color: #4ade80;
+      border: 1px solid var(--color-sober);
     }
 
-    .hero-explanation {
-      font-size: 1.05rem;
-      font-weight: 500;
-      max-width: 620px;
-      line-height: 1.45;
-      opacity: 0.95;
+    .relay-badge.blocked {
+      background: rgba(214, 69, 69, 0.25);
+      color: #f87171;
+      border: 1px solid var(--color-drunk);
     }
 
-    .hero-relay-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 18px;
-      border-radius: var(--radius-pill);
-      background: rgba(0, 0, 0, 0.22);
-      backdrop-filter: blur(6px);
-      font-size: 0.95rem;
+    /* Active Countdown Alert Box */
+    .countdown-alert {
+      margin-top: 14px;
+      display: none;
+      background: rgba(0,0,0,0.35);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 0.88rem;
       font-weight: 700;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: var(--color-caution);
+      border: 1px dashed var(--color-caution);
     }
 
-    /* ====================================================
-       3. METRICS & GAUGE SECTION
-       ==================================================== */
+    /* ========================================================
+       SOBRIETY SCALE VISUALIZER (INTOXICATION SPECTRUM)
+       ======================================================== */
+    .scale-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .scale-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .scale-track {
+      position: relative;
+      height: 24px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, 
+        #10b981 0%, 
+        #84cc16 25%, 
+        #f59e0b 50%, 
+        #ef4444 75%, 
+        #991b1b 100%
+      );
+      margin: 18px 0 28px 0;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .scale-pointer {
+      position: absolute;
+      top: -12px;
+      left: 0%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pointer-bubble {
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+      white-space: nowrap;
+    }
+
+    .pointer-arrow {
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid #ffffff;
+      margin-top: -1px;
+    }
+
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .scale-markers {
+      position: relative;
+      width: 100%;
+      height: 14px;
+      margin-top: 4px;
+    }
+
+    .scale-marker-line {
+      position: absolute;
+      top: -28px;
+      height: 24px;
+      width: 2px;
+      background: rgba(255,255,255,0.7);
+    }
+
+    /* ========================================================
+       BREATH TEST SAMPLING MODAL / SECTION
+       ======================================================== */
+    .test-action-bar {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(30, 64, 175, 0.12));
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .test-action-text h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #93c5fd;
+    }
+
+    .test-action-text p {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    /* Modal for live breath test countdown */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+
+    .sampling-ring-container {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin: 20px auto;
+    }
+
+    .sampling-ring-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: var(--border-color);
+      stroke-width: 12;
+    }
+
+    .ring-fill {
+      fill: none;
+      stroke: var(--color-blue);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-dasharray: 471;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    .ring-center-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-countdown-num {
+      font-size: 3rem;
+      font-weight: 900;
+      color: #38bdf8;
+      line-height: 1;
+    }
+
+    .ring-unit {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Grid Section for Gauge & Telemetry */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
     }
 
-    @media (min-width: 860px) {
+    @media (max-width: 768px) {
       .dashboard-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
       }
     }
 
     .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: var(--radius-lg);
-      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
       box-shadow: var(--shadow-sm);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 12px;
     }
 
     .card-title {
-      font-size: 1.05rem;
+      font-size: 0.92rem;
       font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
     }
 
-    .card-title svg {
-      width: 20px;
-      height: 20px;
-      color: var(--text-muted);
-    }
-
-    /* Semi-circular Gauge */
-    .gauge-wrapper {
+    /* Gauge */
+    .gauge-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
       padding: 10px 0;
     }
 
     .gauge-svg {
-      width: 100%;
-      max-width: 320px;
-      height: auto;
+      width: 240px;
+      height: 130px;
       overflow: visible;
     }
 
-    .gauge-track {
+    .gauge-bg {
       fill: none;
-      stroke: var(--bg-card-subtle);
-      stroke-width: 20;
+      stroke: var(--border-color);
+      stroke-width: 16;
       stroke-linecap: round;
     }
 
     .gauge-fill {
       fill: none;
-      stroke: var(--color-ok);
-      stroke-width: 20;
+      stroke: var(--color-sober);
+      stroke-width: 16;
       stroke-linecap: round;
-      stroke-dasharray: 236;
-      stroke-dashoffset: 236;
-      transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease;
+      stroke-dasharray: 251.3;
+      stroke-dashoffset: 251.3;
+      transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
     }
 
-    .gauge-center-content {
-      position: absolute;
-      bottom: 22px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .gauge-val-text {
+      font-size: 2.3rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-top: -26px;
     }
 
-    .gauge-center-delta {
-      font-size: 2.2rem;
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: -0.02em;
-    }
-
-    .gauge-center-unit {
+    .gauge-subtext {
       font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       margin-top: 4px;
     }
 
-    .threshold-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: var(--radius-pill);
-      font-size: 0.85rem;
-      font-weight: 700;
-      margin-top: 8px;
-      background: var(--bg-card-subtle);
-      border: 1px solid var(--border-card);
-      color: var(--text-muted);
-      transition: all 0.3s ease;
-    }
-
-    .threshold-pill.safe {
-      background: var(--color-ok-bg);
-      border-color: var(--color-ok-border);
-      color: var(--color-ok);
-    }
-
-    .threshold-pill.danger {
-      background: var(--color-danger-bg);
-      border-color: var(--color-danger-border);
-      color: var(--color-danger);
-    }
-
-    .threshold-pill.holding {
-      background: var(--color-warning-bg);
-      border-color: var(--color-warning-border);
-      color: var(--color-warning);
-    }
-
-    .gauge-ticks-row {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      max-width: 290px;
-      margin-top: -6px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
-    /* Metric Grid */
-    .metric-grid {
+    /* Stats Grid */
+    .stats-row {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
+      margin-top: 10px;
     }
 
-    .metric-box {
-      background: var(--bg-card-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
       padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
     }
 
-    .metric-label {
-      font-size: 0.74rem;
-      font-weight: 700;
+    .stat-label {
+      font-size: 0.72rem;
       color: var(--text-muted);
       text-transform: uppercase;
+      font-weight: 600;
       letter-spacing: 0.05em;
     }
 
-    .metric-val {
-      font-size: 1.45rem;
+    .stat-value {
+      font-size: 1.35rem;
       font-weight: 700;
-      color: var(--text-main);
+      margin-top: 2px;
       font-variant-numeric: tabular-nums;
     }
 
-    .metric-sub {
-      font-size: 0.75rem;
-      color: var(--text-subtle);
+    .stat-hint {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
     }
 
-    /* ====================================================
-       4. 5-MINUTE READING LINE CHART (Plain Canvas)
-       ==================================================== */
-    .chart-container {
-      position: relative;
+    /* Canvas Chart */
+    .chart-box {
       width: 100%;
-      height: 240px;
+      height: 220px;
+      position: relative;
+      margin-top: 10px;
     }
 
-    #readingsChart {
+    canvas#trendChart {
       width: 100%;
       height: 100%;
       display: block;
-      border-radius: var(--radius-sm);
     }
 
     .chart-legend {
       display: flex;
-      align-items: center;
-      gap: 14px;
       flex-wrap: wrap;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-muted);
+      gap: 14px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 10px;
+      justify-content: center;
     }
 
-    .legend-tag {
+    .legend-item {
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    .legend-color {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
+    .legend-line {
+      width: 16px;
+      height: 3px;
+      border-radius: 2px;
     }
 
-    .legend-color.reading { background: var(--chart-line); }
-    .legend-color.margin-on {
-      background: var(--color-danger);
-      background-image: repeating-linear-gradient(90deg, var(--color-danger), var(--color-danger) 3px, transparent 3px, transparent 6px);
-    }
-    .legend-color.margin-off {
-      background: var(--color-hysteresis);
-      background-image: repeating-linear-gradient(90deg, var(--color-hysteresis), var(--color-hysteresis) 2px, transparent 2px, transparent 5px);
-    }
-    .legend-color.base {
-      background: var(--text-subtle);
-      background-image: repeating-linear-gradient(90deg, var(--text-subtle), var(--text-subtle) 2px, transparent 2px, transparent 5px);
-    }
-
-    /* ====================================================
-       5. EVENT AUDIT LOG & COUNTERS
-       ==================================================== */
-    .counters-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-    }
-
-    .counter-stat {
-      background: var(--bg-card-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 12px 14px;
-    }
-
-    .counter-stat.highlight-danger {
-      border-color: var(--color-danger-border);
-      background: var(--color-danger-bg);
-    }
-
-    .counter-stat-val {
-      font-size: 1.8rem;
-      font-weight: 800;
-      line-height: 1.2;
-    }
-
-    .counter-stat.highlight-danger .counter-stat-val {
-      color: var(--color-danger);
-    }
-
-    .counter-stat-title {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .log-table-wrapper {
-      width: 100%;
+    /* Event Log Table */
+    .table-container {
       overflow-x: auto;
-      max-height: 280px;
-      border: 1px solid var(--border-card);
-      border-radius: var(--radius-md);
-      -webkit-overflow-scrolling: touch;
+      max-height: 250px;
+      margin-top: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
     }
 
-    .log-table {
+    table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       text-align: left;
-      white-space: nowrap;
     }
 
-    .log-table th {
-      background: var(--bg-card-subtle);
+    th {
+      background: var(--bg-card);
       color: var(--text-muted);
-      font-weight: 700;
-      padding: 10px 14px;
+      font-weight: 600;
+      padding: 8px 12px;
       position: sticky;
       top: 0;
-      border-bottom: 1px solid var(--border-card);
-      z-index: 2;
+      border-bottom: 1px solid var(--border-color);
     }
 
-    .log-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-main);
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
     }
 
-    .log-table tr:hover td {
-      background: var(--bg-card-subtle);
+    .log-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 8px;
-      border-radius: var(--radius-pill);
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
+    .badge-sober { background: rgba(46, 158, 91, 0.25); color: #4ade80; }
+    .badge-drunk { background: rgba(214, 69, 69, 0.25); color: #f87171; }
+    .badge-warmup { background: rgba(224, 160, 32, 0.2); color: #facc15; }
+    .badge-fault { background: rgba(185, 28, 28, 0.25); color: #fca5a5; }
 
-    .badge-ok {
-      background: var(--color-ok-bg);
-      color: var(--color-ok);
-      border: 1px solid var(--color-ok-border);
-    }
-
-    .badge-danger {
-      background: var(--color-danger-bg);
-      color: var(--color-danger);
-      border: 1px solid var(--color-danger-border);
-    }
-
-    .badge-warning {
-      background: var(--color-warning-bg);
-      color: var(--color-warning);
-      border: 1px solid var(--color-warning-border);
-    }
-
-    /* ====================================================
-       6. FOOTER & TOAST
-       ==================================================== */
-    footer.app-footer {
+    /* Footer */
+    footer {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-card);
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
-
-    .footer-item {
-      display: flex;
       align-items: center;
-      gap: 6px;
-    }
-
-    .footer-item strong { color: var(--text-main); }
-
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: #1e293b;
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: var(--radius-pill);
-      font-size: 0.85rem;
-      font-weight: 600;
-      box-shadow: var(--shadow-lg);
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      z-index: 999;
-    }
-
-    .toast.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
+<div class="container">
 
-    <!-- 1. HEADER SECTION -->
-    <header class="app-header">
-      <div class="brand-section">
-        <div class="brand-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            <circle cx="12" cy="11" r="2"></circle>
-            <path d="M12 13v3"></path>
-          </svg>
-        </div>
-        <div class="brand-title">
-          <h1>Alcohol Lock Dashboard</h1>
-          <div class="connection-status">
-            <span class="status-dot offline" id="connectionDot" aria-hidden="true"></span>
-            <span id="connectionText">Click Connect USB</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="header-actions">
-        <button class="btn" id="usbBtn" title="Connect the ESP32 over USB">Connect USB</button>
-        <!-- Audio Mute Toggle -->
-        <button class="btn" id="soundBtn" title="Toggle Alarm Sound" aria-label="Toggle Alarm Sound">
-          <svg id="soundIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
-          <span id="soundLabel">Sound On</span>
-        </button>
-
-        <!-- Theme Toggle -->
-        <button class="btn" id="themeBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <span id="themeLabel">Theme</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- DEVICE OFFLINE / CONNECTING BANNER -->
-    <div class="offline-banner" id="offlineBanner" role="alert">
-      <div class="offline-banner-left">
-        <div class="offline-spinner"></div>
-        <div>
-          <strong>Not connected:</strong> Close the Arduino Serial Monitor, plug in the ESP32, then click <strong>Connect USB</strong> and choose its COM port (use Chrome or Edge).
-        </div>
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🛡️</div>
+      <div class="brand-text">
+        <h1>Driver Sobriety Assessment</h1>
+        <p>ESP32 + MQ-3 Ignition Interlock System</p>
       </div>
     </div>
 
-    <!-- HARDWARE GPIO STATUS BAR -->
-    <section class="hardware-pins-bar" aria-label="ESP32 Physical Pin States">
-      <!-- Green LED Pin 26 -->
-      <div class="pin-status-item">
-        <span class="pin-indicator" id="hwPinGreen"></span>
-        <div class="pin-info">
-          <span class="pin-title">Green LED (Pin 26)</span>
-          <span class="pin-sub" id="hwPinGreenSub">STANDBY</span>
-        </div>
+    <div class="header-actions">
+      <!-- Status Badge -->
+      <div class="conn-status-badge">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="connStatusText">USB Offline</span>
       </div>
 
-      <!-- Red LED Pin 27 -->
-      <div class="pin-status-item">
-        <span class="pin-indicator" id="hwPinRed"></span>
-        <div class="pin-info">
-          <span class="pin-title">Red LED (Pin 27)</span>
-          <span class="pin-sub" id="hwPinRedSub">STANDBY</span>
-        </div>
-      </div>
+      <!-- USB Connect Button -->
+      <button class="btn btn-primary" id="btnConnectSerial">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Connect USB
+      </button>
 
-      <!-- Relay Pin 14 -->
-      <div class="pin-status-item">
-        <span class="pin-indicator" id="hwPinRelay"></span>
-        <div class="pin-info">
-          <span class="pin-title">Ignition Relay (Pin 14)</span>
-          <span class="pin-sub" id="hwPinRelaySub">LOCKED</span>
-        </div>
-      </div>
+      <!-- Demo Toggle -->
+      <button class="btn btn-outline" id="btnDemoToggle">
+        Demo Mode
+      </button>
 
-      <!-- Sensor Analog Pin 34 with 10k/10k divider -->
-      <div class="pin-status-item">
-        <span class="pin-indicator" style="background:#0284c7; box-shadow:0 0 6px #0284c7;"></span>
-        <div class="pin-info">
-          <span class="pin-title">MQ-3 Analog (Pin 34)</span>
-          <span class="pin-sub" id="hwPinAdcSub">Awaiting telemetry...</span>
-        </div>
-      </div>
-    </section>
+      <!-- Sound Mute Toggle -->
+      <button class="icon-btn" id="btnSoundToggle" title="Toggle Alarm Sound">
+        <span id="soundIcon">🔊</span>
+      </button>
 
-    <!-- 2. PRIMARY STATUS HERO CARD (Distance-Readable) -->
-    <main>
-      <section class="status-hero-card state-warming" id="statusHeroCard" aria-live="polite">
-        <div class="hero-icon-circle" id="heroIconWrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-        </div>
-
-        <h2 class="hero-headline" id="heroHeadline">CONNECTING TO SENSOR...</h2>
-        <p class="hero-explanation" id="heroExplanation">
-          Establishing link with ESP32 ignition interlock controller.
-        </p>
-
-        <div class="hero-relay-badge" id="heroRelayBadge">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-          </svg>
-          <span id="heroRelayText">IGNITION BLOCKED (INITIALIZING)</span>
-        </div>
-      </section>
-    </main>
-
-    <!-- 3. LIVE READING GAUGE & METRICS -->
-    <div class="dashboard-grid">
-
-      <!-- Gauge Card -->
-      <section class="card" aria-labelledby="liveGaugeTitle">
-        <div class="card-header">
-          <h2 class="card-title" id="liveGaugeTitle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            Live Alcohol Differential (Δ = Reading - Baseline)
-          </h2>
-          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
-            Trip: +400 Δ
-          </span>
-        </div>
-
-        <div class="gauge-wrapper">
-          <svg class="gauge-svg" viewBox="0 0 200 125" aria-hidden="true">
-            <path class="gauge-track" d="M 25 105 A 75 75 0 0 1 175 105" />
-            <path class="gauge-fill" id="gaugeArcFill" d="M 25 105 A 75 75 0 0 1 175 105" />
-
-            <!-- MARGIN_OFF (+250) Tick Line -->
-            <line x1="85" y1="31" x2="88" y2="44" stroke="var(--color-hysteresis)" stroke-width="2.5" stroke-linecap="round" />
-            <text x="76" y="24" text-anchor="middle" font-size="7" font-weight="bold" fill="var(--color-hysteresis)">
-              OFF (+250)
-            </text>
-
-            <!-- MARGIN_ON (+400) Threshold Marker -->
-            <line x1="100" y1="18" x2="100" y2="35" stroke="var(--color-danger)" stroke-width="3" stroke-linecap="round" />
-            <text x="100" y="14" text-anchor="middle" font-size="8" font-weight="bold" fill="var(--color-danger)">
-              TRIP (+400)
-            </text>
-          </svg>
-
-          <div class="gauge-center-content">
-            <span class="gauge-center-delta" id="gaugeDeltaValue">--</span>
-            <span class="gauge-center-unit">ADC above clean-air baseline</span>
-            <div class="threshold-pill" id="thresholdPill">
-              <span id="thresholdPillDot">●</span>
-              <span id="thresholdPillText">Awaiting Readings</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="gauge-ticks-row">
-          <span>0 (Baseline)</span>
-          <span style="color:var(--color-hysteresis)">+250 (Clear)</span>
-          <span style="color:var(--color-danger)">+400 (Trip)</span>
-          <span>+800+</span>
-        </div>
-      </section>
-
-      <!-- Exact C++ Firmware Parameters & Live Metrics -->
-      <section class="card" aria-labelledby="hardwareMetricsTitle">
-        <div class="card-header">
-          <h2 class="card-title" id="hardwareMetricsTitle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-              <line x1="6" y1="6" x2="6.01" y2="6"></line>
-              <line x1="6" y1="18" x2="6.01" y2="18"></line>
-            </svg>
-            Sensor Telemetry & Voltages
-          </h2>
-          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted);" id="baselineValidTag">
-            12-BIT ADC
-          </span>
-        </div>
-
-        <div class="metric-grid">
-          <div class="metric-box">
-            <span class="metric-label">Smoothed ADC Reading</span>
-            <span class="metric-val" id="valReading">--</span>
-            <span class="metric-sub" id="valReadingSub">Filtered (9/10)</span>
-          </div>
-
-          <div class="metric-box">
-            <span class="metric-label">Clean Baseline</span>
-            <span class="metric-val" id="valBaseline">--</span>
-            <span class="metric-sub" id="baselineSubText">80-sample reference</span>
-          </div>
-
-          <div class="metric-box">
-            <span class="metric-label">Trip Point (MARGIN_ON)</span>
-            <span class="metric-val" id="valTripThresh">--</span>
-            <span class="metric-sub">Baseline + 400 ADC</span>
-          </div>
-
-          <div class="metric-box">
-            <span class="metric-label">Clear Point (MARGIN_OFF)</span>
-            <span class="metric-val" id="valClearThresh">--</span>
-            <span class="metric-sub">Baseline + 250 (Hysteresis)</span>
-          </div>
-        </div>
-
-        <div class="metric-box" style="margin-top:auto;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-              <span class="metric-label">Estimated Pin & Sensor Voltage</span>
-              <div style="font-size:0.95rem; font-weight:700; margin-top:2px;" id="voltageReadout">
-                Pin 34: -- V | Sensor AO: -- V
-              </div>
-            </div>
-            <div id="headroomText" style="font-size:1.15rem; font-weight:800; font-family:monospace; color:var(--text-muted);">
-              -- Δ
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <!-- Theme Toggle -->
+      <button class="icon-btn" id="btnThemeToggle" title="Toggle Theme">
+        <span id="themeIcon">🌙</span>
+      </button>
     </div>
+  </header>
 
-    <!-- 4. 5-MINUTE READING LINE CHART (Plain Canvas) -->
-    <section class="card" aria-labelledby="trendChartTitle">
-      <div class="card-header">
-        <h2 class="card-title" id="trendChartTitle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          Real-Time 5-Minute Sensor History (300 Samples)
-        </h2>
-        <div class="chart-legend">
-          <div class="legend-tag">
-            <span class="legend-color reading"></span>
-            <span>Real Reading</span>
-          </div>
-          <div class="legend-tag">
-            <span class="legend-color margin-on"></span>
-            <span>Trip (Base + 400)</span>
-          </div>
-          <div class="legend-tag">
-            <span class="legend-color margin-off"></span>
-            <span>Hysteresis (Base + 250)</span>
-          </div>
-          <div class="legend-tag">
-            <span class="legend-color base"></span>
-            <span>Clean Baseline</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-container" id="chartContainer">
-        <canvas id="readingsChart"></canvas>
-      </div>
-      <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); padding:0 4px;">
-        <span>5 min ago</span>
-        <span>4 min</span>
-        <span>3 min</span>
-        <span>2 min</span>
-        <span>1 min</span>
-        <span>Live (Now)</span>
-      </div>
-    </section>
-
-    <!-- 5. EVENT AUDIT LOG & DETECTIONS -->
-    <section class="card" aria-labelledby="eventLogTitle">
-      <div class="card-header">
-        <h2 class="card-title" id="eventLogTitle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-          </svg>
-          Interlock Event Audit Log
-        </h2>
-
-        <button class="btn" id="clearLogBtn" title="Clear stored state transitions">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
-          Clear Log
-        </button>
-      </div>
-
-      <!-- Counters -->
-      <div class="counters-row">
-        <div class="counter-stat highlight-danger">
-          <div class="counter-stat-val" id="alcoholDetectionsCount">0</div>
-          <div class="counter-stat-title">Alcohol Detections Today</div>
-        </div>
-
-        <div class="counter-stat">
-          <div class="counter-stat-val" id="totalEventsCount">0</div>
-          <div class="counter-stat-title">Logged State Transitions</div>
-        </div>
-
-        <div class="counter-stat">
-          <div class="counter-stat-val" id="monitoringUptime">00:00:00</div>
-          <div class="counter-stat-title">Monitor Session Duration</div>
-        </div>
-      </div>
-
-      <!-- Log Table -->
-      <div class="log-table-wrapper">
-        <table class="log-table">
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>State Transition</th>
-              <th>Reading ADC</th>
-              <th>Differential (Δ)</th>
-              <th>Ignition Relay</th>
-            </tr>
-          </thead>
-          <tbody id="logTableBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 6. FOOTER -->
-    <footer class="app-footer">
-      <div class="footer-item">
-        <span>Last Polled:</span>
-        <strong id="footerLastUpdate">Connecting...</strong>
-      </div>
-      <div class="footer-item">
-        <span>Baseline Calibrated:</span>
-        <strong id="footerBaselineVal">-- ADC</strong>
-      </div>
-      <div class="footer-item">
-        <span>Polling Rate:</span>
-        <span>1000 ms (1 Hz)</span>
-      </div>
-    </footer>
-
+  <!-- Browser Support Alert -->
+  <div class="banner" id="browserCompatAlert">
+    <span>⚠️ <strong>Web Serial Not Supported:</strong> Your browser lacks Web Serial API. Please use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on Windows/Mac to connect directly via USB, or activate <strong>Demo Mode</strong>.</span>
   </div>
 
-  <!-- Notification Toast -->
-  <div class="toast" id="toast">Notification</div>
-
-  <!-- ====================================================
-       APPLICATION JAVASCRIPT (ACTUAL LIVE READINGS ONLY)
-       ==================================================== -->
-  <script>
-    (function () {
-      'use strict';
-
-      /* --------------------------------------------------
-         CONSTANTS MATCHING THE EXACT C++ FIRMWARE
-         -------------------------------------------------- */
-      const POLL_INTERVAL_MS = 1000;
-      const MAX_CHART_POINTS = 300; // 5 minutes at 1 Hz
-      const STORAGE_KEY_LOG = 'esp32_alcohol_real_events';
-      const STORAGE_KEY_THEME = 'esp32_alcohol_theme_pref';
-      const STORAGE_KEY_MUTE = 'esp32_alcohol_mute_pref';
-
-      const MARGIN_ON = 400;   // ADC counts above baseline => alcohol trip
-      const MARGIN_OFF = 250;  // must drop below this to clear (hysteresis)
-
-      const STATE_WARMING = 'WARMING UP';
-      const STATE_SOBER   = 'OK - ignition allowed';
-      const STATE_ALCOHOL = 'ALCOHOL DETECTED - ignition blocked';
-      const STATE_FAULT   = 'SENSOR FAULT - ignition blocked';
-
-      /* --------------------------------------------------
-         LIVE APPLICATION STATE
-         -------------------------------------------------- */
-      const appState = {
-        isOnline: false,
-        isMuted: false,
-        currentTheme: 'system',
-
-        // Hardware Data polled directly from /status
-        lastReading: 0,
-        baseline: 0,
-        state: null,
-        previousState: null,
-        ignitionAllowed: false,
-        lastPollTimestamp: null,
-
-        readingsHistory: [],
-        events: [],
-        sessionStartTime: Date.now()
-      };
-
-      /* --------------------------------------------------
-         DOM REFERENCES
-         -------------------------------------------------- */
-      const dom = {
-        connectionDot: document.getElementById('connectionDot'),
-        connectionText: document.getElementById('connectionText'),
-        offlineBanner: document.getElementById('offlineBanner'),
-
-        soundBtn: document.getElementById('soundBtn'),
-        soundLabel: document.getElementById('soundLabel'),
-        soundIcon: document.getElementById('soundIcon'),
-        themeBtn: document.getElementById('themeBtn'),
-        themeLabel: document.getElementById('themeLabel'),
-
-        // GPIO Pin Status
-        hwPinGreen: document.getElementById('hwPinGreen'),
-        hwPinGreenSub: document.getElementById('hwPinGreenSub'),
-        hwPinRed: document.getElementById('hwPinRed'),
-        hwPinRedSub: document.getElementById('hwPinRedSub'),
-        hwPinRelay: document.getElementById('hwPinRelay'),
-        hwPinRelaySub: document.getElementById('hwPinRelaySub'),
-        hwPinAdcSub: document.getElementById('hwPinAdcSub'),
-
-        // Hero Card
-        statusHeroCard: document.getElementById('statusHeroCard'),
-        heroIconWrap: document.getElementById('heroIconWrap'),
-        heroHeadline: document.getElementById('heroHeadline'),
-        heroExplanation: document.getElementById('heroExplanation'),
-        heroRelayText: document.getElementById('heroRelayText'),
-
-        // Gauge & Values
-        gaugeArcFill: document.getElementById('gaugeArcFill'),
-        gaugeDeltaValue: document.getElementById('gaugeDeltaValue'),
-        thresholdPill: document.getElementById('thresholdPill'),
-        thresholdPillDot: document.getElementById('thresholdPillDot'),
-        thresholdPillText: document.getElementById('thresholdPillText'),
-
-        valReading: document.getElementById('valReading'),
-        valReadingSub: document.getElementById('valReadingSub'),
-        valBaseline: document.getElementById('valBaseline'),
-        valTripThresh: document.getElementById('valTripThresh'),
-        valClearThresh: document.getElementById('valClearThresh'),
-        baselineValidTag: document.getElementById('baselineValidTag'),
-        baselineSubText: document.getElementById('baselineSubText'),
-        voltageReadout: document.getElementById('voltageReadout'),
-        headroomText: document.getElementById('headroomText'),
-
-        // Chart
-        chartCanvas: document.getElementById('readingsChart'),
-        chartContainer: document.getElementById('chartContainer'),
-
-        // Logs
-        clearLogBtn: document.getElementById('clearLogBtn'),
-        alcoholDetectionsCount: document.getElementById('alcoholDetectionsCount'),
-        totalEventsCount: document.getElementById('totalEventsCount'),
-        monitoringUptime: document.getElementById('monitoringUptime'),
-        logTableBody: document.getElementById('logTableBody'),
-
-        // Footer & Toast
-        footerLastUpdate: document.getElementById('footerLastUpdate'),
-        footerBaselineVal: document.getElementById('footerBaselineVal'),
-        toast: document.getElementById('toast')
-      };
-
-      /* --------------------------------------------------
-         WEB AUDIO API (BEEP ALERT)
-         -------------------------------------------------- */
-      let audioCtx = null;
-
-      function getAudioContext() {
-        if (!audioCtx) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (AudioContextClass) audioCtx = new AudioContextClass();
-        }
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        return audioCtx;
-      }
-
-      function playWarningAlarm() {
-        if (appState.isMuted) return;
-        const ctx = getAudioContext();
-        if (!ctx) return;
-
-        try {
-          const now = ctx.currentTime;
-          const osc1 = ctx.createOscillator();
-          const gain1 = ctx.createGain();
-          osc1.type = 'sawtooth';
-          osc1.frequency.setValueAtTime(880, now);
-          gain1.gain.setValueAtTime(0.3, now);
-          gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
-          osc1.connect(gain1);
-          gain1.connect(ctx.destination);
-          osc1.start(now);
-          osc1.stop(now + 0.18);
-
-          const osc2 = ctx.createOscillator();
-          const gain2 = ctx.createGain();
-          osc2.type = 'sawtooth';
-          osc2.frequency.setValueAtTime(1175, now + 0.2);
-          gain2.gain.setValueAtTime(0.35, now + 0.2);
-          gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
-          osc2.connect(gain2);
-          gain2.connect(ctx.destination);
-          osc2.start(now + 0.2);
-          osc2.stop(now + 0.4);
-        } catch (e) {
-          console.warn('Audio error', e);
-        }
-      }
-
-      /* --------------------------------------------------
-         TOAST NOTIFICATIONS
-         -------------------------------------------------- */
-      let toastTimer = null;
-      function showToast(msg) {
-        if (!dom.toast) return;
-        dom.toast.textContent = msg;
-        dom.toast.classList.add('show');
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => dom.toast.classList.remove('show'), 2600);
-      }
-
-      /* --------------------------------------------------
-         PREFERENCES & PERSISTENCE
-         -------------------------------------------------- */
-      function initPreferences() {
-        const storedMute = localStorage.getItem(STORAGE_KEY_MUTE);
-        if (storedMute !== null) appState.isMuted = (storedMute === 'true');
-        updateMuteUI();
-
-        const storedTheme = localStorage.getItem(STORAGE_KEY_THEME) || 'system';
-        setTheme(storedTheme, false);
-
-        try {
-          const rawEvents = localStorage.getItem(STORAGE_KEY_LOG);
-          if (rawEvents) {
-            appState.events = JSON.parse(rawEvents);
-            if (!Array.isArray(appState.events)) appState.events = [];
-          }
-        } catch (e) {
-          appState.events = [];
-        }
-
-        renderEventLogTable();
-        updateDetectionCounters();
-      }
-
-      function setTheme(theme, save = true) {
-        appState.currentTheme = theme;
-        if (save) localStorage.setItem(STORAGE_KEY_THEME, theme);
-
-        if (theme === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark');
-          dom.themeLabel.textContent = 'Dark';
-        } else if (theme === 'light') {
-          document.documentElement.setAttribute('data-theme', 'light');
-          dom.themeLabel.textContent = 'Light';
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-          dom.themeLabel.textContent = 'Auto';
-        }
-        requestAnimationFrame(renderChart);
-      }
-
-      function cycleTheme() {
-        if (appState.currentTheme === 'system') setTheme('dark');
-        else if (appState.currentTheme === 'dark') setTheme('light');
-        else setTheme('system');
-        showToast(`Theme: ${appState.currentTheme}`);
-      }
-
-      function toggleMute() {
-        getAudioContext();
-        appState.isMuted = !appState.isMuted;
-        localStorage.setItem(STORAGE_KEY_MUTE, String(appState.isMuted));
-        updateMuteUI();
-        showToast(appState.isMuted ? 'Alarm Sound Muted' : 'Alarm Sound Enabled');
-      }
-
-      function updateMuteUI() {
-        if (appState.isMuted) {
-          dom.soundLabel.textContent = 'Muted';
-          dom.soundIcon.innerHTML = `
-            <line x1="1" y1="1" x2="23" y2="23"></line>
-            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
-            <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-          `;
-        } else {
-          dom.soundLabel.textContent = 'Sound On';
-          dom.soundIcon.innerHTML = `
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          `;
-        }
-      }
-
-      /* --------------------------------------------------
-         CORE TELEMETRY PROCESSOR (REAL HARDWARE DATA)
-         -------------------------------------------------- */
-      function processNewData(data) {
-        if (!data || typeof data !== 'object') return;
-
-        const prev = appState.state;
-        appState.lastReading = Number.isFinite(data.reading) ? data.reading : 0;
-        appState.baseline = Number.isFinite(data.baseline) ? data.baseline : 0;
-        appState.state = data.state || STATE_SOBER;
-        appState.ignitionAllowed = Boolean(data.ignition_allowed);
-        appState.lastPollTimestamp = new Date();
-
-        // Add to historical trend
-        const tripVal = appState.baseline + MARGIN_ON;
-        const clearVal = appState.baseline + MARGIN_OFF;
-        appState.readingsHistory.push({
-          time: Date.now(),
-          reading: appState.lastReading,
-          baseline: appState.baseline,
-          tripThresh: tripVal,
-          clearThresh: clearVal
-        });
-
-        if (appState.readingsHistory.length > MAX_CHART_POINTS) {
-          appState.readingsHistory.shift();
-        }
-
-        // Detect State Changes
-        if (prev !== null && prev !== appState.state) {
-          handleStateTransition(prev, appState.state);
-        } else if (prev === null) {
-          recordEvent(appState.state, 'Initial monitor connection');
-        }
-
-        appState.previousState = appState.state;
-
-        // Render live updates
-        updateHeroCard();
-        updateGaugeAndMetrics();
-        updateHardwarePinsUI();
-        updateFooter();
-        renderChart();
-      }
-
-      function handleStateTransition(oldState, newState) {
-        recordEvent(newState, `State changed from "${oldState}"`);
-
-        if (newState === STATE_ALCOHOL) {
-          playWarningAlarm();
-          showToast('⚠️ ALCOHOL DETECTED! Ignition locked.');
-        } else if (newState === STATE_SOBER) {
-          showToast('✅ SOBER: Vehicle ignition enabled.');
-        } else if (newState === STATE_FAULT) {
-          showToast('⚠️ SENSOR FAULT: Check MQ-3 wiring.');
-        } else if (newState === STATE_WARMING) {
-          showToast('⏳ MQ-3 Warming up... keep in clean air.');
-        }
-      }
-
-      function recordEvent(stateStr, note) {
-        const delta = appState.lastReading - appState.baseline;
-        const newRecord = {
-          id: Date.now() + Math.random().toString(36).substr(2, 4),
-          timestamp: new Date().toISOString(),
-          state: stateStr,
-          reading: appState.lastReading,
-          delta: delta,
-          ignitionAllowed: appState.ignitionAllowed,
-          note: note || ''
-        };
-
-        appState.events.unshift(newRecord);
-        if (appState.events.length > 200) appState.events.pop();
-
-        try {
-          localStorage.setItem(STORAGE_KEY_LOG, JSON.stringify(appState.events));
-        } catch (e) {
-          console.warn('LocalStorage error', e);
-        }
-
-        renderEventLogTable();
-        updateDetectionCounters();
-      }
-
-      function clearLog() {
-        if (!confirm('Clear the entire interlock event audit log?')) return;
-        appState.events = [];
-        try { localStorage.removeItem(STORAGE_KEY_LOG); } catch (e) {}
-        renderEventLogTable();
-        updateDetectionCounters();
-        showToast('Audit log cleared');
-      }
-
-      function updateDetectionCounters() {
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = now.getMonth();
-        const d = now.getDate();
-
-        let detectionsToday = 0;
-        appState.events.forEach(ev => {
-          if (ev.state === STATE_ALCOHOL) {
-            const evDate = new Date(ev.timestamp);
-            if (evDate.getFullYear() === y && evDate.getMonth() === m && evDate.getDate() === d) {
-              detectionsToday++;
-            }
-          }
-        });
-
-        dom.alcoholDetectionsCount.textContent = detectionsToday;
-        dom.totalEventsCount.textContent = appState.events.length;
-      }
-
-      /* --------------------------------------------------
-         HARDWARE GPIO PIN VISUALIZATION
-         -------------------------------------------------- */
-      function updateHardwarePinsUI() {
-        const { state, ignitionAllowed, lastReading } = appState;
-        const isSober = (state === STATE_SOBER);
-
-        // Green LED (GPIO 26)
-        if (isSober) {
-          dom.hwPinGreen.className = 'pin-indicator green-on';
-          dom.hwPinGreenSub.textContent = 'HIGH (Sober)';
-        } else {
-          dom.hwPinGreen.className = 'pin-indicator';
-          dom.hwPinGreenSub.textContent = 'LOW (Off)';
-        }
-
-        // Red LED (GPIO 27)
-        if (state === STATE_ALCOHOL) {
-          dom.hwPinRed.className = 'pin-indicator red-on';
-          dom.hwPinRedSub.textContent = 'SOLID HIGH (Blocked)';
-        } else if (state === STATE_WARMING) {
-          dom.hwPinRed.className = 'pin-indicator red-on';
-          dom.hwPinRedSub.textContent = 'BLINKING (400ms)';
-        } else if (state === STATE_FAULT) {
-          dom.hwPinRed.className = 'pin-indicator red-on';
-          dom.hwPinRedSub.textContent = 'BLINKING (Fault)';
-        } else {
-          dom.hwPinRed.className = 'pin-indicator';
-          dom.hwPinRedSub.textContent = 'LOW (Off)';
-        }
-
-        // Relay (GPIO 14)
-        if (ignitionAllowed) {
-          dom.hwPinRelay.className = 'pin-indicator relay-on';
-          dom.hwPinRelaySub.textContent = 'ENABLED (Closed)';
-        } else {
-          dom.hwPinRelay.className = 'pin-indicator';
-          dom.hwPinRelaySub.textContent = 'DISABLED (Open)';
-        }
-
-        // Analog Pin 34 with 10k/10k divider
-        const pinVolts = ((lastReading / 4095) * 3.3).toFixed(2);
-        dom.hwPinAdcSub.textContent = `Pin 34: ${lastReading} (~${pinVolts}V)`;
-      }
-
-      /* --------------------------------------------------
-         PRIMARY STATUS HERO CARD
-         -------------------------------------------------- */
-      function updateHeroCard() {
-        const { state, ignitionAllowed } = appState;
-        const card = dom.statusHeroCard;
-        card.className = 'status-hero-card';
-
-        let iconSvg = '';
-        let headline = '';
-        let explanation = '';
-        let relayLabel = ignitionAllowed ? 'IGNITION ALLOWED (RELAY CLOSED)' : 'IGNITION BLOCKED (RELAY OPEN)';
-        let relayIcon = ignitionAllowed
-          ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`
-          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><circle cx="12" cy="16" r="1"></circle><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
-
-        switch (state) {
-          case STATE_SOBER:
-            card.classList.add('state-ok');
-            headline = 'READY - Ignition Allowed';
-            explanation = 'Clean breath verified. Alcohol differential is within normal baseline. Vehicle start enabled.';
-            iconSvg = `
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-            `;
-            break;
-
-          case STATE_ALCOHOL:
-            card.classList.add('state-danger');
-            headline = 'ALCOHOL DETECTED - Ignition Blocked';
-            explanation = 'Ethanol concentration exceeded safety threshold (+400 ADC above baseline). Ignition locked.';
-            iconSvg = `
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-            `;
-            break;
-
-          case STATE_WARMING:
-            card.classList.add('state-warming');
-            headline = 'WARMING UP - Please Wait';
-            explanation = 'MQ-3 sensor heater stabilizing. Ignition locked until clean-air baseline calibration finishes.';
-            iconSvg = `
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-            `;
-            break;
-
-          case STATE_FAULT:
-            card.classList.add('state-fault');
-            headline = 'SENSOR FAULT - Ignition Blocked';
-            explanation = 'Reading is stuck at rails (< 20 or > 4090). Wire broken or short circuit on GPIO 34.';
-            iconSvg = `
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-            `;
-            break;
-
-          default:
-            card.classList.add('state-warming');
-            headline = state || 'CONNECTING...';
-            explanation = 'Reading telemetry from ESP32...';
-            iconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>`;
-            break;
-        }
-
-        dom.heroIconWrap.innerHTML = iconSvg;
-        dom.heroHeadline.textContent = headline;
-        dom.heroExplanation.textContent = explanation;
-        dom.heroRelayText.innerHTML = `${relayIcon} <span>${relayLabel}</span>`;
-      }
-
-      /* --------------------------------------------------
-         LIVE GAUGE, METRICS & REAL READINGS
-         -------------------------------------------------- */
-      function updateGaugeAndMetrics() {
-        const reading = appState.lastReading;
-        const baseline = appState.baseline;
-        const delta = reading - baseline;
-        const tripVal = baseline + MARGIN_ON;
-        const clearVal = baseline + MARGIN_OFF;
-
-        dom.valReading.textContent = reading;
-        dom.valBaseline.textContent = baseline > 0 ? baseline : '--';
-        dom.valTripThresh.textContent = baseline > 0 ? tripVal : '--';
-        dom.valClearThresh.textContent = baseline > 0 ? clearVal : '--';
-
-        // Voltages via 10k/10k divider
-        const pinVolts = ((reading / 4095.0) * 3.3).toFixed(2);
-        const sensorAoVolts = (pinVolts * 2.0).toFixed(2);
-        dom.voltageReadout.textContent = `Pin 34: ${pinVolts} V | Sensor AO: ~${sensorAoVolts} V`;
-
-        // Headroom to trip
-        if (baseline > 0) {
-          const headroom = tripVal - reading;
-          if (headroom >= 0) {
-            dom.headroomText.textContent = `+${headroom} Δ margin`;
-            dom.headroomText.style.color = 'var(--text-main)';
-          } else {
-            dom.headroomText.textContent = `${headroom} Δ trip!`;
-            dom.headroomText.style.color = 'var(--color-danger)';
-          }
-        }
-
-        // SVG Arc Gauge Update
-        const arcLength = Math.PI * 75; // ~235.6
-        const clampedDelta = Math.max(0, Math.min(800, delta));
-        const fraction = clampedDelta / 800;
-
-        dom.gaugeArcFill.style.strokeDasharray = `${arcLength}`;
-        dom.gaugeArcFill.style.strokeDashoffset = `${arcLength * (1 - fraction)}`;
-
-        let strokeColor = 'var(--color-ok)';
-        if (delta >= MARGIN_ON) {
-          strokeColor = 'var(--color-danger)';
-        } else if (delta >= MARGIN_OFF) {
-          strokeColor = 'var(--color-hysteresis)';
-        }
-        dom.gaugeArcFill.style.stroke = strokeColor;
-        dom.gaugeDeltaValue.textContent = delta >= 0 ? `+${delta}` : `${delta}`;
-
-        // Threshold indicator pill
-        if (delta >= MARGIN_ON) {
-          dom.thresholdPill.className = 'threshold-pill danger';
-          dom.thresholdPillDot.textContent = '▲';
-          dom.thresholdPillText.textContent = 'ALCOHOL LIMIT TRIPPED (≥ +400 Δ)';
-        } else if (delta >= MARGIN_OFF) {
-          dom.thresholdPill.className = 'threshold-pill holding';
-          dom.thresholdPillDot.textContent = '●';
-          dom.thresholdPillText.textContent = 'Hysteresis Zone (+250 to +400 Δ)';
-        } else {
-          dom.thresholdPill.className = 'threshold-pill safe';
-          dom.thresholdPillDot.textContent = '●';
-          dom.thresholdPillText.textContent = 'Safe Clean Air (< +250 Δ)';
-        }
-      }
-
-      /* --------------------------------------------------
-         PLAIN CANVAS 5-MINUTE CHART (REAL POLLED POINTS)
-         -------------------------------------------------- */
-      function renderChart() {
-        const canvas = dom.chartCanvas;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-
-        const rect = dom.chartContainer.getBoundingClientRect();
-        const width = Math.floor(rect.width);
-        const height = Math.floor(rect.height);
-
-        if (width <= 0 || height <= 0) return;
-
-        if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-          canvas.width = width * dpr;
-          canvas.height = height * dpr;
-        }
-
-        ctx.save();
-        ctx.scale(dpr, dpr);
-        ctx.clearRect(0, 0, width, height);
-
-        const data = appState.readingsHistory;
-        const padding = { top: 22, right: 52, bottom: 24, left: 44 };
-        const plotWidth = width - padding.left - padding.right;
-        const plotHeight = height - padding.top - padding.bottom;
-
-        let minVal = 600;
-        let maxVal = 1400;
-
-        if (data.length > 0) {
-          for (let i = 0; i < data.length; i++) {
-            const v = data[i].reading;
-            const t = data[i].tripThresh;
-            const c = data[i].clearThresh;
-            const b = data[i].baseline;
-            if (v < minVal) minVal = v;
-            if (v > maxVal) maxVal = v;
-            if (t > maxVal) maxVal = t;
-            if (c > maxVal) maxVal = c;
-            if (b < minVal) minVal = b;
-          }
-        }
-        minVal = Math.max(0, Math.floor(minVal - 80));
-        maxVal = Math.ceil(maxVal + 100);
-
-        const getY = (val) => {
-          const ratio = (val - minVal) / (maxVal - minVal);
-          return padding.top + plotHeight - ratio * plotHeight;
-        };
-
-        const getX = (index, total) => {
-          if (total <= 1) return padding.left;
-          return padding.left + (index / (total - 1)) * plotWidth;
-        };
-
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
-          (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-        const gridColor = isDark ? '#1e2c4a' : '#e2e8f0';
-        const textMuted = isDark ? '#94a3b8' : '#64748b';
-        const lineColor = isDark ? '#38bdf8' : '#0284c7';
-        const dangerColor = '#d64545';
-        const hystColor = '#f59e0b';
-        const baselineColor = isDark ? '#64748b' : '#94a3b8';
-
-        // Horizontal Grid Lines & Y Labels
-        const ySteps = 4;
-        ctx.font = '10px var(--font-family)';
-        ctx.fillStyle = textMuted;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-
-        for (let i = 0; i <= ySteps; i++) {
-          const yVal = Math.round(minVal + ((maxVal - minVal) / ySteps) * i);
-          const yPos = getY(yVal);
-
-          ctx.beginPath();
-          ctx.strokeStyle = gridColor;
-          ctx.lineWidth = 1;
-          ctx.setLineDash([]);
-          ctx.moveTo(padding.left, yPos);
-          ctx.lineTo(width - padding.right, yPos);
-          ctx.stroke();
-
-          ctx.fillText(String(yVal), padding.left - 8, yPos);
-        }
-
-        // Baseline Line
-        const currentBaseline = appState.baseline;
-        if (currentBaseline >= minVal && currentBaseline <= maxVal) {
-          const yBase = getY(currentBaseline);
-          ctx.beginPath();
-          ctx.strokeStyle = baselineColor;
-          ctx.lineWidth = 1.2;
-          ctx.setLineDash([4, 4]);
-          ctx.moveTo(padding.left, yBase);
-          ctx.lineTo(width - padding.right, yBase);
-          ctx.stroke();
-
-          ctx.textAlign = 'left';
-          ctx.fillStyle = baselineColor;
-          ctx.fillText(`Base ${currentBaseline}`, width - padding.right + 4, yBase);
-        }
-
-        // MARGIN_OFF Line (Hysteresis reset: baseline + 250)
-        const currentClear = appState.baseline + MARGIN_OFF;
-        if (currentClear >= minVal && currentClear <= maxVal) {
-          const yClear = getY(currentClear);
-          ctx.beginPath();
-          ctx.strokeStyle = hystColor;
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([4, 4]);
-          ctx.moveTo(padding.left, yClear);
-          ctx.lineTo(width - padding.right, yClear);
-          ctx.stroke();
-
-          ctx.textAlign = 'left';
-          ctx.fillStyle = hystColor;
-          ctx.fillText(`Off ${currentClear}`, width - padding.right + 4, yClear);
-        }
-
-        // MARGIN_ON Line (Trip threshold: baseline + 400)
-        const currentTrip = appState.baseline + MARGIN_ON;
-        if (currentTrip >= minVal && currentTrip <= maxVal) {
-          const yTrip = getY(currentTrip);
-          ctx.beginPath();
-          ctx.strokeStyle = dangerColor;
-          ctx.lineWidth = 2;
-          ctx.setLineDash([6, 5]);
-          ctx.moveTo(padding.left, yTrip);
-          ctx.lineTo(width - padding.right, yTrip);
-          ctx.stroke();
-
-          ctx.textAlign = 'left';
-          ctx.fillStyle = dangerColor;
-          ctx.font = 'bold 10px var(--font-family)';
-          ctx.fillText(`Trip ${currentTrip}`, width - padding.right + 4, yTrip);
-        }
-
-        if (data.length < 2) {
-          ctx.fillStyle = textMuted;
-          ctx.textAlign = 'center';
-          ctx.font = '12px var(--font-family)';
-          ctx.fillText('Accumulating live sensor readings from ESP32...', width / 2, height / 2);
-          ctx.restore();
-          return;
-        }
-
-        ctx.beginPath();
-        ctx.setLineDash([]);
-        const total = data.length;
-
-        ctx.moveTo(getX(0, total), getY(data[0].reading));
-        for (let i = 1; i < total; i++) {
-          ctx.lineTo(getX(i, total), getY(data[i].reading));
-        }
-
-        const firstX = getX(0, total);
-        const lastX = getX(total - 1, total);
-        const bottomY = padding.top + plotHeight;
-
-        ctx.lineTo(lastX, bottomY);
-        ctx.lineTo(firstX, bottomY);
-        ctx.closePath();
-
-        const grad = ctx.createLinearGradient(0, padding.top, 0, bottomY);
-        if (isDark) {
-          grad.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
-          grad.addColorStop(1, 'rgba(56, 189, 248, 0.01)');
-        } else {
-          grad.addColorStop(0, 'rgba(2, 132, 199, 0.22)');
-          grad.addColorStop(1, 'rgba(2, 132, 199, 0.01)');
-        }
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.setLineDash([]);
-        ctx.strokeStyle = lineColor;
-        ctx.lineWidth = 2.5;
-        ctx.moveTo(getX(0, total), getY(data[0].reading));
-        for (let i = 1; i < total; i++) {
-          ctx.lineTo(getX(i, total), getY(data[i].reading));
-        }
-        ctx.stroke();
-
-        const latestPoint = data[total - 1];
-        const lastXPos = getX(total - 1, total);
-        const lastYPos = getY(latestPoint.reading);
-
-        ctx.beginPath();
-        ctx.arc(lastXPos, lastYPos, 5, 0, Math.PI * 2);
-        ctx.fillStyle = (latestPoint.reading >= latestPoint.tripThresh) ? dangerColor : lineColor;
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.restore();
-      }
-
-      /* --------------------------------------------------
-         EVENT LOG TABLE RENDERING
-         -------------------------------------------------- */
-      function renderEventLogTable() {
-        const tbody = dom.logTableBody;
-        if (!tbody) return;
-
-        if (appState.events.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">
-                No hardware state transitions recorded yet.
-              </td>
-            </tr>
-          `;
-          return;
-        }
-
-        let html = '';
-        appState.events.forEach(ev => {
-          const date = new Date(ev.timestamp);
-          const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          const dateStr = date.toLocaleDateString();
-
-          let stateBadgeClass = 'badge-ok';
-          if (ev.state === STATE_ALCOHOL) stateBadgeClass = 'badge-danger';
-          else if (ev.state === STATE_FAULT) stateBadgeClass = 'badge-danger';
-          else if (ev.state === STATE_WARMING) stateBadgeClass = 'badge-warning';
-
-          const relayHtml = ev.ignitionAllowed
-            ? `<span style="color:var(--color-ok); font-weight:700;">● ALLOWED</span>`
-            : `<span style="color:var(--color-danger); font-weight:700;">✕ BLOCKED</span>`;
-
-          const deltaStr = ev.delta >= 0 ? `+${ev.delta}` : `${ev.delta}`;
-
-          html += `
-            <tr>
-              <td><strong>${timeStr}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">(${dateStr})</span></td>
-              <td><span class="badge ${stateBadgeClass}">${escapeHtml(ev.state)}</span></td>
-              <td><code>${ev.reading}</code></td>
-              <td><code>${deltaStr}</code></td>
-              <td>${relayHtml}</td>
-            </tr>
-          `;
-        });
-
-        tbody.innerHTML = html;
-      }
-
-      function escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-      }
-
-      function updateFooter() {
-        if (appState.lastPollTimestamp) {
-          const timeStr = appState.lastPollTimestamp.toLocaleTimeString();
-          dom.footerLastUpdate.textContent = `${timeStr} (Live)`;
-        }
-        dom.footerBaselineVal.textContent = appState.baseline > 0 ? `${appState.baseline} ADC` : '--';
-      }
-
-      function updateSessionUptime() {
-        const diffMs = Date.now() - appState.sessionStartTime;
-        const totalSec = Math.floor(diffMs / 1000);
-        const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
-        const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
-        const secs = String(totalSec % 60).padStart(2, '0');
-        dom.monitoringUptime.textContent = `${hrs}:${mins}:${secs}`;
-      }
-
-      /* --------------------------------------------------
-         REAL HTTP POLLING LOOP (/status)
-         -------------------------------------------------- */
-      let serialPort = null;
-      let lastLineTime = 0;
-
-      async function connectUsb() {
-        if (!('serial' in navigator)) { showToast('Use Chrome or Edge'); return; }
-        try {
-          serialPort = await navigator.serial.requestPort();
-          await serialPort.open({ baudRate: 115200 });
-          document.getElementById('usbBtn').textContent = 'USB connected';
-          readLoop();
-        } catch (e) {
-          showToast('Could not open the port. Close the Arduino Serial Monitor.');
-        }
-      }
-
-      async function readLoop() {
-        const decoder = new TextDecoderStream();
-        serialPort.readable.pipeTo(decoder.writable).catch(() => {});
-        const reader = decoder.readable.getReader();
-        let buf = '';
-        try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buf += value;
-            let idx;
-            while ((idx = buf.indexOf('\n')) >= 0) {
-              handleLine(buf.slice(0, idx).trim());
-              buf = buf.slice(idx + 1);
-            }
-          }
-        } catch (e) {
-        } finally {
-          try { reader.releaseLock(); } catch (e) {}
-          setOnlineState(false);
-          document.getElementById('usbBtn').textContent = 'Connect USB';
-        }
-      }
-
-      function handleLine(line) {
-        const m = line.match(/^raw=(-?\d+) smooth=(-?\d+) base=(-?\d+) state=(.+)$/);
-        if (!m) return;
-        lastLineTime = Date.now();
-        const state = m[4].trim();
-        setOnlineState(true);
-        processNewData({
-          reading: parseInt(m[2], 10),
-          baseline: parseInt(m[3], 10),
-          state: state,
-          ignition_allowed: state === STATE_SOBER
-        });
-      }
-
-      function checkStale() {
-        if (appState.isOnline && Date.now() - lastLineTime > 4000) setOnlineState(false);
-      }
-
-      function setOnlineState(online) {
-        appState.isOnline = online;
-        if (online) {
-          dom.connectionDot.className = 'status-dot online';
-          dom.connectionText.textContent = 'ESP32 Connected (USB)';
-          dom.offlineBanner.classList.add('hidden');
-        } else {
-          dom.connectionDot.className = 'status-dot offline';
-          dom.connectionText.textContent = 'Click Connect USB';
-          dom.offlineBanner.classList.remove('hidden');
-        }
-      }
-
-      function initEvents() {
-        document.addEventListener('click', () => getAudioContext(), { once: true });
-
-        dom.soundBtn.addEventListener('click', toggleMute);
-        dom.themeBtn.addEventListener('click', cycleTheme);
-        dom.clearLogBtn.addEventListener('click', clearLog);
-
-        let resizeTimer = null;
-        window.addEventListener('resize', () => {
-          clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(() => renderChart(), 100);
-        });
-      }
-
-      function init() {
-        initPreferences();
-        initEvents();
-
-        document.getElementById('usbBtn').addEventListener('click', connectUsb);
-        setInterval(checkStale, 1000);
-        setInterval(updateSessionUptime, 1000);
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+  <!-- ========================================================
+       PRIMARY HERO CARD: DRUNK OR SOBER OVERVIEW
+       ======================================================== -->
+  <section class="hero-verdict-card state-warmup" id="heroCard">
+    <div class="verdict-header-row">
+      <span class="verdict-pill" id="verdictPill">ASSESSING SENSOR</span>
+      <span class="verdict-pill" id="lastPollTag">Awaiting Data</span>
+    </div>
+
+    <!-- MAIN DECISION HEADLINE -->
+    <h2 class="verdict-title" id="verdictHeadline">WARMING UP SENSOR...</h2>
+    <p class="verdict-subtitle" id="verdictSubtitle">
+      Sensor heater is preheating. Keep sensor in clean ambient air before taking a breath test.
+    </p>
+
+    <!-- SOBRIETY OVERVIEW 3-METRIC STRIP -->
+    <div class="overview-strip">
+      <div class="overview-item">
+        <div class="overview-label">Is Person Drunk?</div>
+        <div class="overview-value" id="drunkAnswerText" style="color:var(--color-caution);">PENDING</div>
+      </div>
+      <div class="overview-item">
+        <div class="overview-label">Estimated BAC</div>
+        <div class="overview-value" id="bacEstimateText">0.000%</div>
+      </div>
+      <div class="overview-item">
+        <div class="overview-label">Vehicle Ignition</div>
+        <div class="overview-value" id="ignitionAnswerText" style="color:var(--color-drunk);">LOCKED</div>
+      </div>
+    </div>
+
+    <!-- Hardware Relay & Virtual LED Indicators -->
+    <div class="interlock-bar">
+      <div class="interlock-item">
+        <span>STARTER RELAY:</span>
+        <span class="relay-badge blocked" id="relayBadge">LOCKED (DISABLED)</span>
+      </div>
+      <div class="interlock-item">
+        <span class="hw-led" id="ledGreen"></span>
+        <span>Pin 26 (Sober Green)</span>
+      </div>
+      <div class="interlock-item">
+        <span class="hw-led" id="ledRed"></span>
+        <span>Pin 27 (Drunk Red)</span>
+      </div>
+    </div>
+
+    <!-- Dynamic Countdown Timer -->
+    <div class="countdown-alert" id="countdownBox">
+      <span id="countdownText">Sensor stabilizing...</span>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       BREATH TEST ACTION BAR (COLLECT SAMPLE)
+       ======================================================== -->
+  <section class="test-action-bar">
+    <div class="test-action-text">
+      <h3>🌬️ Breathalyzer Sample Collection</h3>
+      <p>Initiate a 5-second breath test cycle to collect readings and generate a formal sobriety verdict.</p>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-test" id="btnStartBreathTest">
+        🚀 Collect Breath Sample
+      </button>
+      <button class="btn btn-outline" id="btnCalibrateCleanAir">
+        🎯 Zero Clean Air
+      </button>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       INTOXICATION SPECTRUM / SCALE VISUALIZER
+       ======================================================== -->
+  <section class="scale-card">
+    <div class="scale-header">
+      <div style="font-size:0.85rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.05em;">
+        Intoxication Severity Spectrum
+      </div>
+      <div style="font-size:0.82rem; font-weight:700;" id="scaleZoneLabel">
+        Zone: Clean Air (0.000% BAC)
+      </div>
+    </div>
+
+    <div class="scale-track">
+      <!-- Pointer indicator -->
+      <div class="scale-pointer" id="scalePointer" style="left: 0%;">
+        <div class="pointer-bubble" id="pointerText">0.000% BAC</div>
+        <div class="pointer-arrow"></div>
+      </div>
+      <!-- Marker for 0.08% legal trip threshold (60% position on track) -->
+      <div class="scale-marker-line" style="left: 60%;" title="Legal Drunk Threshold (0.08% BAC)"></div>
+    </div>
+
+    <div class="scale-labels">
+      <span style="color:#10b981;">0.00% Zero</span>
+      <span style="color:#84cc16;">0.02% Trace</span>
+      <span style="color:#f59e0b;">0.05% Limit</span>
+      <span style="color:#ef4444;">0.08% Drunk (Trip)</span>
+      <span style="color:#991b1b;">0.15%+ High</span>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       MIDDLE GRID: GAUGE & SENSOR HARDWARE METRICS
+       ======================================================== -->
+  <div class="dashboard-grid">
+    <!-- Live Breath Difference Gauge -->
+    <div class="card">
+      <div class="card-title">
+        <span>Alcohol Reading Gauge</span>
+        <span id="readingDiffLabel">+0 counts</span>
+      </div>
+      
+      <div class="gauge-container">
+        <svg class="gauge-svg" viewBox="0 0 200 110">
+          <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+          <path class="gauge-fill" id="gaugeFillPath" d="M 20 100 A 80 80 0 0 1 180 100" />
+        </svg>
+
+        <div class="gauge-val-text" id="gaugeVal">0</div>
+        <div class="gauge-subtext" id="gaugeSub">Counts Above Clean Air</div>
+      </div>
+
+      <div style="margin-top: 10px; font-size: 0.82rem; text-align: center; color: var(--text-secondary);">
+        <span id="headroomText">Safety margin: 400 counts until drunk threshold</span>
+      </div>
+    </div>
+
+    <!-- Live Hardware Diagnostics -->
+    <div class="card">
+      <div class="card-title">
+        <span>Hardware Diagnostics</span>
+        <span style="font-size:0.75rem; color:var(--text-muted);">GPIO 34 ADC (10k/10k)</span>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">Smoothed ADC</div>
+          <div class="stat-value" id="statReading">--</div>
+          <div class="stat-hint">Active filtered breath</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Clean Baseline</div>
+          <div class="stat-value" id="statBaseline">--</div>
+          <div class="stat-hint">Reference zero</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Raw 12-bit ADC</div>
+          <div class="stat-value" id="statRaw">--</div>
+          <div class="stat-hint">Range: 0 - 4095</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Trip Margin</div>
+          <div class="stat-value" style="color:var(--color-drunk)">+400</div>
+          <div class="stat-hint">Hysteresis: +250</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; font-size: 0.78rem; color: var(--text-muted); display:flex; justify-content:space-between;">
+        <span>Legal Threshold: 0.080% BAC</span>
+        <span>Sensor: MQ-3 Semiconductor</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Realtime 5-Minute Trend Chart -->
+  <div class="card">
+    <div class="card-title">
+      <span>Continuous Breath Telemetry (5-Minute Window)</span>
+      <span style="font-size:0.75rem; color:var(--text-muted);">Live Plotting</span>
+    </div>
+
+    <div class="chart-box">
+      <canvas id="trendChart"></canvas>
+    </div>
+
+    <div class="chart-legend">
+      <div class="legend-item">
+        <span class="legend-line" style="background:#38bdf8;"></span>
+        <span>Breath Reading</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-line" style="background:#10b981; border-top:1px dashed #10b981;"></span>
+        <span>Clean Baseline</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-line" style="background:#f59e0b; border-top:1px dashed #f59e0b;"></span>
+        <span>Caution (+250)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-line" style="background:#ef4444; border-top:1px dashed #ef4444;"></span>
+        <span>Drunk Threshold (+400)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sobriety Test Audit Log -->
+  <div class="card">
+    <div class="card-title">
+      <span>Sobriety Audit Log</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="verdict-pill" id="tripCounterTag" style="color:var(--color-drunk); border-color:var(--color-drunk);">0 Drunk Incidents</span>
+        <button class="btn btn-outline" style="padding:4px 10px; font-size:0.75rem;" id="btnExportLog">Export CSV</button>
+        <button class="btn btn-outline" style="padding:4px 10px; font-size:0.75rem;" id="btnClearLog">Clear Log</button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Sobriety Status</th>
+            <th>Est. BAC</th>
+            <th>Peak ADC</th>
+            <th>Ignition Interlock</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div>Last Telemetry: <span id="lastUpdateSpan">Never</span></div>
+    <div>Baseline: <span id="footerBaselineSpan">None</span></div>
+    <div>System Interlock: <span id="footerInterlockSpan" style="font-weight:700;">SAFE</span></div>
+  </footer>
+
+</div>
+
+<!-- ========================================================
+     MODAL: BREATH TEST IN PROGRESS (COUNTDOWN & SAMPLING)
+     ======================================================== -->
+<div class="modal-overlay" id="testModal">
+  <div class="modal-card">
+    <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:6px;" id="modalTitle">BREATH SAMPLING ACTIVE</h2>
+    <p style="color:var(--text-secondary); font-size:0.9rem;" id="modalInstruction">
+      Blow continuously and steadily into the MQ-3 sensor now!
+    </p>
+
+    <!-- Animated Countdown Ring -->
+    <div class="sampling-ring-container">
+      <svg class="sampling-ring-svg" viewBox="0 0 160 160">
+        <circle class="ring-bg" cx="80" cy="80" r="70" />
+        <circle class="ring-fill" id="modalRingFill" cx="80" cy="80" r="70" />
+      </svg>
+      <div class="ring-center-content">
+        <div class="ring-countdown-num" id="modalCountdownNum">5</div>
+        <div class="ring-unit">Seconds</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-card); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:18px;">
+      <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Peak Sample Captured</div>
+      <div style="font-size:1.4rem; font-weight:800; margin-top:2px;" id="modalPeakReading">0 counts (0.000% BAC)</div>
+    </div>
+
+    <button class="btn btn-outline" id="btnCancelTest" style="width:100%;">
+      Cancel Sample
+    </button>
+  </div>
+</div>
+
+<!-- Application Logic -->
+<script>
+(() => {
+  'use strict';
+
+  // --- Configuration Constants ---
+  const BAUD_RATE = 115200;
+  const MARGIN_ON = 400;      // +400 counts calibrated to 0.080% BAC (Drunk)
+  const MARGIN_OFF = 250;     // +250 counts calibrated to 0.050% BAC (Caution reset)
+  const BAC_LEGAL_LIMIT = 0.080;
+  const CHART_MAX_POINTS = 300;
+  const STORAGE_KEY_LOGS = 'sober_test_logs_v2';
+  const STORAGE_KEY_SOUND = 'sober_sound_enabled';
+  const STORAGE_KEY_THEME = 'sober_theme';
+
+  // --- Application State ---
+  let serialPort = null;
+  let serialReader = null;
+  let readableStreamClosed = null;
+  let isConnected = false;
+  let isDemoMode = false;
+  let demoInterval = null;
+  let soundEnabled = localStorage.getItem(STORAGE_KEY_SOUND) !== 'false';
+  let drunkCountToday = 0;
+  let lastRecordedState = null;
+  let eventLogs = [];
+
+  // Active breath sampling session state
+  let isSamplingActive = false;
+  let samplingTimer = null;
+  let samplingRemainingSec = 5;
+  let samplePeakDiff = 0;
+  let samplePeakReading = 0;
+
+  // Chart data buffer
+  const chartData = {
+    timestamps: [],
+    readings: [],
+    baselines: []
+  };
+
+  // --- DOM Elements ---
+  const elStatusDot = document.getElementById('statusDot');
+  const elConnStatusText = document.getElementById('connStatusText');
+  const elBtnConnectSerial = document.getElementById('btnConnectSerial');
+  const elBtnDemoToggle = document.getElementById('btnDemoToggle');
+  const elBtnSoundToggle = document.getElementById('btnSoundToggle');
+  const elSoundIcon = document.getElementById('soundIcon');
+  const elBtnThemeToggle = document.getElementById('btnThemeToggle');
+  const elThemeIcon = document.getElementById('themeIcon');
+  const elBrowserAlert = document.getElementById('browserCompatAlert');
+
+  // Hero Card
+  const elHeroCard = document.getElementById('heroCard');
+  const elVerdictPill = document.getElementById('verdictPill');
+  const elLastPollTag = document.getElementById('lastPollTag');
+  const elVerdictHeadline = document.getElementById('verdictHeadline');
+  const elVerdictSubtitle = document.getElementById('verdictSubtitle');
+  const elDrunkAnswerText = document.getElementById('drunkAnswerText');
+  const elBacEstimateText = document.getElementById('bacEstimateText');
+  const elIgnitionAnswerText = document.getElementById('ignitionAnswerText');
+  const elRelayBadge = document.getElementById('relayBadge');
+  const elLedGreen = document.getElementById('ledGreen');
+  const elLedRed = document.getElementById('ledRed');
+  const elCountdownBox = document.getElementById('countdownBox');
+  const elCountdownText = document.getElementById('countdownText');
+
+  // Scale & Gauge
+  const elScalePointer = document.getElementById('scalePointer');
+  const elPointerText = document.getElementById('pointerText');
+  const elScaleZoneLabel = document.getElementById('scaleZoneLabel');
+  const elGaugeFill = document.getElementById('gaugeFillPath');
+  const elGaugeVal = document.getElementById('gaugeVal');
+  const elReadingDiffLabel = document.getElementById('readingDiffLabel');
+  const elHeadroomText = document.getElementById('headroomText');
+
+  // Stats
+  const elStatReading = document.getElementById('statReading');
+  const elStatBaseline = document.getElementById('statBaseline');
+  const elStatRaw = document.getElementById('statRaw');
+
+  // Test Actions
+  const elBtnStartBreathTest = document.getElementById('btnStartBreathTest');
+  const elBtnCalibrateCleanAir = document.getElementById('btnCalibrateCleanAir');
+  const elTestModal = document.getElementById('testModal');
+  const elModalRingFill = document.getElementById('modalRingFill');
+  const elModalCountdownNum = document.getElementById('modalCountdownNum');
+  const elModalPeakReading = document.getElementById('modalPeakReading');
+  const elBtnCancelTest = document.getElementById('btnCancelTest');
+
+  // Trend & Log
+  const elTrendCanvas = document.getElementById('trendChart');
+  const elTripCounterTag = document.getElementById('tripCounterTag');
+  const elLogTableBody = document.getElementById('logTableBody');
+  const elBtnClearLog = document.getElementById('btnClearLog');
+  const elBtnExportLog = document.getElementById('btnExportLog');
+
+  // Footer
+  const elLastUpdateSpan = document.getElementById('lastUpdateSpan');
+  const elFooterBaselineSpan = document.getElementById('footerBaselineSpan');
+  const elFooterInterlockSpan = document.getElementById('footerInterlockSpan');
+
+  // --- Audio Alert Synthesizer ---
+  let audioCtx = null;
+  function playBeep(isDrunkAlert = false) {
+    if (!soundEnabled) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      if (isDrunkAlert) {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.45);
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.45);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.46);
       } else {
-        init();
+        // Sober / Success chime
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.36);
+      }
+    } catch (e) {}
+  }
+
+  // --- Browser Compatibility ---
+  const hasWebSerial = ('serial' in navigator);
+  if (!hasWebSerial) {
+    elBrowserAlert.style.display = 'flex';
+    elBtnConnectSerial.disabled = true;
+  }
+
+  // --- Theme Management ---
+  function initTheme() {
+    const saved = localStorage.getItem(STORAGE_KEY_THEME);
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      elThemeIcon.textContent = saved === 'light' ? '☀️' : '🌙';
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      elThemeIcon.textContent = prefersDark ? '🌙' : '☀️';
+    }
+  }
+  initTheme();
+
+  elBtnThemeToggle.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(STORAGE_KEY_THEME, next);
+    elThemeIcon.textContent = next === 'light' ? '☀️' : '🌙';
+    drawTrendChart();
+  });
+
+  // --- Sound Toggle ---
+  function updateSoundUI() {
+    elSoundIcon.textContent = soundEnabled ? '🔊' : '🔇';
+    localStorage.setItem(STORAGE_KEY_SOUND, soundEnabled);
+  }
+  updateSoundUI();
+  elBtnSoundToggle.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    updateSoundUI();
+  });
+
+  // --- Real-Time Trend Canvas ---
+  function initChart() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = elTrendCanvas.getBoundingClientRect();
+    elTrendCanvas.width = rect.width * dpr;
+    elTrendCanvas.height = rect.height * dpr;
+  }
+  window.addEventListener('resize', () => {
+    initChart();
+    drawTrendChart();
+  });
+
+  function drawTrendChart() {
+    const ctx = elTrendCanvas.getContext('2d');
+    const width = elTrendCanvas.width;
+    const height = elTrendCanvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    if (chartData.readings.length === 0) {
+      ctx.fillStyle = '#64748b';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Awaiting live breath readings...', width / 2, height / 2);
+      return;
+    }
+
+    const padding = { top: 20, right: 30, bottom: 25, left: 45 };
+    const plotW = width - padding.left - padding.right;
+    const plotH = height - padding.top - padding.bottom;
+
+    const base = chartData.baselines[chartData.baselines.length - 1] || 800;
+    const minVal = Math.max(0, base - 150);
+    const maxVal = Math.max(base + 600, ...chartData.readings) + 50;
+
+    const getY = (val) => padding.top + plotH - ((val - minVal) / (maxVal - minVal)) * plotH;
+    const getX = (idx, total) => padding.left + (idx / Math.max(1, total - 1)) * plotW;
+
+    // Grid lines
+    ctx.strokeStyle = '#263345';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    const step = 200;
+    for (let v = Math.ceil(minVal / step) * step; v <= maxVal; v += step) {
+      const y = getY(v);
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(width - padding.right, y);
+      ctx.stroke();
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(v.toString(), padding.left - 6, y + 3);
+    }
+
+    // Baseline (Green Dashed)
+    const yBase = getY(base);
+    ctx.strokeStyle = '#10b981';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, yBase);
+    ctx.lineTo(width - padding.right, yBase);
+    ctx.stroke();
+
+    // Reset margin line (Amber Dashed)
+    const yReset = getY(base + MARGIN_OFF);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, yReset);
+    ctx.lineTo(width - padding.right, yReset);
+    ctx.stroke();
+
+    // Drunk Trip Threshold (Red Dashed)
+    const yTrip = getY(base + MARGIN_ON);
+    ctx.strokeStyle = '#ef4444';
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, yTrip);
+    ctx.lineTo(width - padding.right, yTrip);
+    ctx.stroke();
+
+    // Reading Line (Cyan Solid)
+    ctx.setLineDash([]);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#38bdf8';
+    ctx.beginPath();
+    for (let i = 0; i < chartData.readings.length; i++) {
+      const x = getX(i, chartData.readings.length);
+      const y = getY(chartData.readings[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Area fill
+    ctx.lineTo(getX(chartData.readings.length - 1, chartData.readings.length), getY(minVal));
+    ctx.lineTo(getX(0, chartData.readings.length), getY(minVal));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+    ctx.fill();
+  }
+
+  // --- Gauge & Intoxication Scale Updaters ---
+  const GAUGE_ARC_LENGTH = 251.3;
+  function updateGauge(diff, estBac) {
+    const clampedDiff = Math.max(0, Math.min(diff, 600));
+    const fraction = clampedDiff / 600;
+    const offset = GAUGE_ARC_LENGTH - (fraction * GAUGE_ARC_LENGTH);
+    elGaugeFill.style.strokeDashoffset = offset;
+
+    if (diff > MARGIN_ON) {
+      elGaugeFill.style.stroke = 'var(--color-drunk)';
+    } else if (diff > MARGIN_OFF) {
+      elGaugeFill.style.stroke = 'var(--color-caution)';
+    } else {
+      elGaugeFill.style.stroke = 'var(--color-sober)';
+    }
+
+    elGaugeVal.textContent = diff > 0 ? `+${diff}` : `${diff}`;
+    elReadingDiffLabel.textContent = diff > 0 ? `+${diff} counts` : `${diff} counts`;
+
+    if (diff >= MARGIN_ON) {
+      const over = diff - MARGIN_ON;
+      elHeadroomText.textContent = `⚠️ Over threshold by +${over} counts (DRUNK / INTOXICATED)`;
+      elHeadroomText.style.color = 'var(--color-drunk)';
+    } else {
+      const margin = MARGIN_ON - diff;
+      elHeadroomText.textContent = `Safety margin: ${margin} counts until legal drunk threshold (+400)`;
+      elHeadroomText.style.color = 'var(--text-secondary)';
+    }
+
+    // Update horizontal spectrum pointer
+    // 0.00% is 0%, 0.08% is 60%, 0.15% is 95%
+    const scalePercent = Math.min(100, Math.max(0, (estBac / 0.14) * 100));
+    elScalePointer.style.left = `${scalePercent}%`;
+    elPointerText.textContent = `${estBac.toFixed(3)}% BAC`;
+
+    if (estBac >= 0.080) {
+      elScaleZoneLabel.textContent = `Zone: Intoxicated / Drunk (${estBac.toFixed(3)}% BAC)`;
+      elScaleZoneLabel.style.color = 'var(--color-drunk)';
+    } else if (estBac >= 0.045) {
+      elScaleZoneLabel.textContent = `Zone: Impaired / Caution (${estBac.toFixed(3)}% BAC)`;
+      elScaleZoneLabel.style.color = 'var(--color-caution)';
+    } else if (estBac >= 0.015) {
+      elScaleZoneLabel.textContent = `Zone: Trace Alcohol (${estBac.toFixed(3)}% BAC)`;
+      elScaleZoneLabel.style.color = '#84cc16';
+    } else {
+      elScaleZoneLabel.textContent = `Zone: Clean Air / Sober (0.000% BAC)`;
+      elScaleZoneLabel.style.color = 'var(--color-sober)';
+    }
+  }
+
+  // --- Sobriety Log Management ---
+  function loadStoredLogs() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY_LOGS);
+      if (data) eventLogs = JSON.parse(data);
+    } catch (e) {
+      eventLogs = [];
+    }
+    calculateDrunkCount();
+    renderLogsTable();
+  }
+
+  function saveLogs() {
+    try {
+      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(eventLogs.slice(0, 100)));
+    } catch (e) {}
+  }
+
+  function calculateDrunkCount() {
+    const todayStr = new Date().toDateString();
+    drunkCountToday = eventLogs.filter(item => {
+      const itemDate = new Date(item.timestamp).toDateString();
+      return itemDate === todayStr && item.is_drunk;
+    }).length;
+    elTripCounterTag.textContent = `${drunkCountToday} Drunk Incidents Today`;
+  }
+
+  function logSobrietyEvent(entry) {
+    eventLogs.unshift(entry);
+    calculateDrunkCount();
+    saveLogs();
+    renderLogsTable();
+  }
+
+  function renderLogsTable() {
+    elLogTableBody.innerHTML = '';
+    if (eventLogs.length === 0) {
+      elLogTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">No breath samples recorded yet.</td></tr>`;
+      return;
+    }
+
+    eventLogs.slice(0, 50).forEach(entry => {
+      const tr = document.createElement('tr');
+      const timeStr = new Date(entry.timestamp).toLocaleTimeString();
+      const badgeClass = entry.is_drunk ? 'badge-drunk' : 'badge-sober';
+      const verdictLabel = entry.is_drunk ? 'DRUNK / FAIL' : 'SOBER / PASS';
+
+      tr.innerHTML = `
+        <td>${timeStr}</td>
+        <td><span class="log-badge ${badgeClass}">${verdictLabel}</span></td>
+        <td style="font-weight:700;">${entry.est_bac.toFixed(3)}%</td>
+        <td>${entry.reading}</td>
+        <td>${entry.ignition ? '<span style="color:#4ade80; font-weight:700;">ALLOWED</span>' : '<span style="color:#f87171; font-weight:700;">LOCKED</span>'}</td>
+      `;
+      elLogTableBody.appendChild(tr);
+    });
+  }
+
+  elBtnClearLog.addEventListener('click', () => {
+    if (confirm('Clear sobriety audit log?')) {
+      eventLogs = [];
+      saveLogs();
+      calculateDrunkCount();
+      renderLogsTable();
+    }
+  });
+
+  elBtnExportLog.addEventListener('click', () => {
+    if (eventLogs.length === 0) {
+      alert('Log is empty.');
+      return;
+    }
+    let csv = 'Timestamp,SobrietyStatus,EstBAC,ReadingADC,BaselineADC,IgnitionAllowed\n';
+    eventLogs.forEach(e => {
+      csv += `"${e.timestamp}","${e.is_drunk ? 'DRUNK' : 'SOBER'}",${e.est_bac.toFixed(3)},${e.reading},${e.baseline},${e.ignition}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sobriety_audit_log_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // --- Primary Telemetry Consumer (Updates Drunk Overview) ---
+  function handleTelemetry(data) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString();
+
+    // 1. Connection indicators
+    elStatusDot.className = 'status-dot online';
+    elConnStatusText.textContent = isDemoMode ? 'Demo Simulating' : 'USB Online (115200)';
+    elLastPollTag.textContent = `Updated: ${timeStr}`;
+    elLastUpdateSpan.textContent = timeStr;
+    elFooterBaselineSpan.textContent = data.baseline > 0 ? `${data.baseline} counts` : 'Calibrating';
+
+    // 2. Metrics & Estimated BAC calculation
+    const diff = data.diff !== undefined ? data.diff : (data.reading - data.baseline);
+    let estBac = 0.0;
+    if (data.est_bac !== undefined) {
+      estBac = parseFloat(data.est_bac);
+    } else if (diff > 0) {
+      estBac = (diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
+    }
+    estBac = Math.max(0, estBac);
+
+    // Update gauge & scale
+    updateGauge(diff, estBac);
+    elStatReading.textContent = data.reading;
+    elStatBaseline.textContent = data.baseline;
+    elStatRaw.textContent = data.raw !== undefined ? data.raw : data.reading;
+    elBacEstimateText.textContent = `${estBac.toFixed(3)}%`;
+
+    // 3. Update Chart
+    chartData.timestamps.push(timeStr);
+    chartData.readings.push(data.reading);
+    chartData.baselines.push(data.baseline);
+    if (chartData.readings.length > CHART_MAX_POINTS) {
+      chartData.timestamps.shift();
+      chartData.readings.shift();
+      chartData.baselines.shift();
+    }
+    drawTrendChart();
+
+    // Track active breath sampling peak
+    if (isSamplingActive) {
+      if (diff > samplePeakDiff) {
+        samplePeakDiff = diff;
+        samplePeakReading = data.reading;
+        const peakBac = (samplePeakDiff / MARGIN_ON) * BAC_LEGAL_LIMIT;
+        elModalPeakReading.textContent = `${samplePeakReading} counts (${peakBac.toFixed(3)}% BAC)`;
+      }
+    }
+
+    // 4. Hero Decision Banner: Is the person drunk or not?
+    const stateStr = (data.state || '').toUpperCase();
+    const isDrunk = data.is_drunk !== undefined ? !!data.is_drunk : (stateStr.includes('ALCOHOL') || stateStr.includes('DRUNK'));
+    const isWarming = stateStr.includes('WARM');
+    const isFault = stateStr.includes('FAULT');
+    const ignitionAllowed = !!data.ignition_allowed;
+
+    elHeroCard.className = 'hero-verdict-card';
+    elCountdownBox.style.display = 'none';
+
+    if (isFault) {
+      elHeroCard.classList.add('state-fault');
+      elVerdictPill.textContent = 'SENSOR FAULT';
+      elVerdictHeadline.textContent = 'HARDWARE FAULT — TEST INVALID';
+      elVerdictHeadline.style.color = '#f87171';
+      elVerdictSubtitle.textContent = 'ADC rail out of bounds (<20 or >4090). Check sensor wiring and voltage divider.';
+      elDrunkAnswerText.textContent = 'ERROR';
+      elDrunkAnswerText.style.color = '#f87171';
+      elIgnitionAnswerText.textContent = 'BLOCKED';
+      elIgnitionAnswerText.style.color = '#f87171';
+
+      elRelayBadge.className = 'relay-badge blocked';
+      elRelayBadge.textContent = 'LOCKED (FAULT)';
+      elLedGreen.className = 'hw-led';
+      elLedRed.className = 'hw-led red-on';
+      elFooterInterlockSpan.textContent = 'FAULT (INTERLOCKED)';
+      elFooterInterlockSpan.style.color = '#f87171';
+
+    } else if (isWarming) {
+      elHeroCard.classList.add('state-warmup');
+      elVerdictPill.textContent = 'PREHEATING SENSOR';
+      elVerdictHeadline.textContent = 'SENSOR WARMING UP...';
+      elVerdictHeadline.style.color = 'var(--color-caution)';
+      elVerdictSubtitle.textContent = 'MQ-3 sensor is preheating clean-air baseline. Please do not blow into sensor yet.';
+      elDrunkAnswerText.textContent = 'WAIT';
+      elDrunkAnswerText.style.color = 'var(--color-caution)';
+      elIgnitionAnswerText.textContent = 'LOCKED';
+      elIgnitionAnswerText.style.color = 'var(--color-caution)';
+
+      elRelayBadge.className = 'relay-badge blocked';
+      elRelayBadge.textContent = 'LOCKED (WARMUP)';
+      elLedGreen.className = 'hw-led';
+      elLedRed.className = 'hw-led red-on';
+      elFooterInterlockSpan.textContent = 'PREHEATING';
+      elFooterInterlockSpan.style.color = 'var(--color-caution)';
+
+      if (data.warmup_sec && data.warmup_sec > 0) {
+        elCountdownBox.style.display = 'block';
+        elCountdownText.textContent = `Warmup in progress: ${data.warmup_sec}s remaining (keep in clean ambient air)`;
       }
 
-    })();
-  </script>
+    } else if (isDrunk) {
+      // PERSON IS DRUNK
+      elHeroCard.classList.add('state-drunk');
+      elVerdictPill.textContent = 'INTOXICATION CONFIRMED';
+      elVerdictHeadline.textContent = 'PERSON IS DRUNK — DO NOT DRIVE';
+      elVerdictHeadline.style.color = 'var(--color-drunk)';
+      elVerdictSubtitle.textContent = `Alcohol level exceeds the legal limit of ${BAC_LEGAL_LIMIT.toFixed(2)}% BAC. Starter interlock is locked.`;
+      elDrunkAnswerText.textContent = 'YES (DRUNK)';
+      elDrunkAnswerText.style.color = 'var(--color-drunk)';
+      elIgnitionAnswerText.textContent = 'LOCKED';
+      elIgnitionAnswerText.style.color = 'var(--color-drunk)';
+
+      elRelayBadge.className = 'relay-badge blocked';
+      elRelayBadge.textContent = 'LOCKED (INTERLOCK ACTIVE)';
+      elLedGreen.className = 'hw-led';
+      elLedRed.className = 'hw-led red-on';
+      elFooterInterlockSpan.textContent = 'IGNITION BLOCKED (DRUNK)';
+      elFooterInterlockSpan.style.color = 'var(--color-drunk)';
+
+      if (data.hold_sec && data.hold_sec > 0) {
+        elCountdownBox.style.display = 'block';
+        elCountdownText.textContent = `Alcohol clearing: Lockout hold active for ${data.hold_sec}s`;
+      }
+
+    } else {
+      // PERSON IS SOBER
+      elHeroCard.classList.add('state-sober');
+      elVerdictPill.textContent = 'SOBRIETY VERIFIED';
+      elVerdictHeadline.textContent = 'PERSON IS SOBER — FIT TO DRIVE';
+      elVerdictHeadline.style.color = 'var(--color-sober)';
+      elVerdictSubtitle.textContent = 'Clean air confirmed. Alcohol is well below safety threshold. Vehicle ignition permitted.';
+      elDrunkAnswerText.textContent = 'NO (SOBER)';
+      elDrunkAnswerText.style.color = 'var(--color-sober)';
+      elIgnitionAnswerText.textContent = 'ALLOWED';
+      elIgnitionAnswerText.style.color = 'var(--color-sober)';
+
+      elRelayBadge.className = 'relay-badge allowed';
+      elRelayBadge.textContent = 'PERMITTED (ENABLED)';
+      elLedGreen.className = 'hw-led green-on';
+      elLedRed.className = 'hw-led';
+      elFooterInterlockSpan.textContent = 'IGNITION ENABLED (SAFE)';
+      elFooterInterlockSpan.style.color = 'var(--color-sober)';
+    }
+
+    // State transition logging
+    if (stateStr !== lastRecordedState) {
+      if (lastRecordedState !== null) {
+        logSobrietyEvent({
+          timestamp: new Date().toISOString(),
+          is_drunk: isDrunk,
+          est_bac: estBac,
+          reading: data.reading,
+          baseline: data.baseline,
+          ignition: ignitionAllowed
+        });
+      }
+      lastRecordedState = stateStr;
+      if (isDrunk) playBeep(true);
+      else if (stateStr.includes('SOBER')) playBeep(false);
+    }
+  }
+
+  // --- Interactive Breath Sample Collection Routine ---
+  const RING_CIRCUMFERENCE = 440; // 2 * PI * 70
+  function startBreathTestRoutine() {
+    isSamplingActive = true;
+    samplePeakDiff = 0;
+    samplePeakReading = 0;
+    samplingRemainingSec = 5;
+
+    elTestModal.style.display = 'flex';
+    elModalCountdownNum.textContent = '5';
+    elModalRingFill.style.strokeDashoffset = '0';
+    elModalPeakReading.textContent = 'Sampling...';
+
+    // 5-second countdown timer
+    samplingTimer = setInterval(() => {
+      samplingRemainingSec--;
+      elModalCountdownNum.textContent = samplingRemainingSec.toString();
+
+      // Update ring fill
+      const progress = (5 - samplingRemainingSec) / 5;
+      elModalRingFill.style.strokeDashoffset = (progress * RING_CIRCUMFERENCE).toString();
+
+      if (samplingRemainingSec <= 0) {
+        finishBreathTestRoutine();
+      }
+    }, 1000);
+  }
+
+  function finishBreathTestRoutine() {
+    clearInterval(samplingTimer);
+    isSamplingActive = false;
+    elTestModal.style.display = 'none';
+
+    const peakBac = (samplePeakDiff / MARGIN_ON) * BAC_LEGAL_LIMIT;
+    const isPersonDrunk = samplePeakDiff >= MARGIN_ON;
+
+    // Log official breath test to history
+    logSobrietyEvent({
+      timestamp: new Date().toISOString(),
+      is_drunk: isPersonDrunk,
+      est_bac: peakBac,
+      reading: samplePeakReading,
+      baseline: parseInt(elStatBaseline.textContent) || 800,
+      ignition: !isPersonDrunk
+    });
+
+    if (isPersonDrunk) {
+      playBeep(true);
+      alert(`🚨 BREATH TEST RESULT: FAILED (PERSON IS DRUNK)\nPeak BAC: ${peakBac.toFixed(3)}% (Exceeds ${BAC_LEGAL_LIMIT.toFixed(2)}% limit)\nVehicle Ignition: LOCKED`);
+    } else {
+      playBeep(false);
+      alert(`✅ BREATH TEST RESULT: PASSED (PERSON IS SOBER)\nPeak BAC: ${peakBac.toFixed(3)}%\nVehicle Ignition: PERMITTED`);
+    }
+  }
+
+  elBtnStartBreathTest.addEventListener('click', startBreathTestRoutine);
+  elBtnCancelTest.addEventListener('click', () => {
+    clearInterval(samplingTimer);
+    isSamplingActive = false;
+    elTestModal.style.display = 'none';
+  });
+
+  // --- Web Serial API Connection ---
+  async function connectSerial() {
+    if (!hasWebSerial) {
+      alert('Your browser does not support the Web Serial API. Please use Google Chrome or Microsoft Edge.');
+      return;
+    }
+
+    try {
+      if (isConnected && serialPort) {
+        await disconnectSerial();
+        return;
+      }
+
+      serialPort = await navigator.serial.requestPort();
+      await serialPort.open({ baudRate: BAUD_RATE });
+
+      isConnected = true;
+      elBtnConnectSerial.textContent = 'Disconnect USB';
+      elBtnConnectSerial.classList.replace('btn-primary', 'btn-danger');
+      elStatusDot.className = 'status-dot online';
+      elConnStatusText.textContent = 'Connected (115200)';
+
+      navigator.serial.addEventListener('disconnect', onPortDisconnected);
+      readSerialLoop();
+
+    } catch (err) {
+      console.error('Serial connection error:', err);
+    }
+  }
+
+  async function disconnectSerial() {
+    try {
+      if (serialReader) {
+        await serialReader.cancel();
+        serialReader.releaseLock();
+        serialReader = null;
+      }
+      if (readableStreamClosed) {
+        await readableStreamClosed.catch(() => {});
+        readableStreamClosed = null;
+      }
+      if (serialPort) {
+        await serialPort.close();
+        serialPort = null;
+      }
+    } catch (err) {
+    } finally {
+      isConnected = false;
+      elBtnConnectSerial.textContent = 'Connect USB';
+      elBtnConnectSerial.classList.replace('btn-danger', 'btn-primary');
+      elStatusDot.className = 'status-dot';
+      elConnStatusText.textContent = 'USB Disconnected';
+    }
+  }
+
+  function onPortDisconnected() {
+    disconnectSerial();
+  }
+
+  async function readSerialLoop() {
+    const textDecoder = new TextDecoderStream();
+    readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
+    serialReader = textDecoder.readable.getReader();
+    let lineBuffer = '';
+
+    try {
+      while (true) {
+        const { value, done } = await serialReader.read();
+        if (done) break;
+        if (value) {
+          lineBuffer += value;
+          const lines = lineBuffer.split(/\r?\n/);
+          lineBuffer = lines.pop();
+
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line) continue;
+            if (line.startsWith('{') && line.endsWith('}')) {
+              try {
+                const data = JSON.parse(line);
+                if (data.state !== undefined && data.reading !== undefined) {
+                  handleTelemetry(data);
+                }
+              } catch (parseErr) {}
+            }
+          }
+        }
+      }
+    } catch (err) {
+    } finally {
+      if (serialReader) serialReader.releaseLock();
+    }
+  }
+
+  async function sendSerialCommand(cmd) {
+    if (!serialPort || !serialPort.writable) return;
+    try {
+      const encoder = new TextEncoder();
+      const writer = serialPort.writable.getWriter();
+      await writer.write(encoder.encode(cmd + '\n'));
+      writer.releaseLock();
+    } catch (err) {}
+  }
+
+  elBtnConnectSerial.addEventListener('click', connectSerial);
+  elBtnCalibrateCleanAir.addEventListener('click', () => {
+    if (isDemoMode) {
+      demoBaseline = demoReading;
+      handleTelemetry({
+        state: "SOBER - ignition allowed",
+        reading: demoBaseline,
+        baseline: demoBaseline,
+        diff: 0,
+        is_drunk: false,
+        est_bac: 0.000,
+        ignition_allowed: true
+      });
+    } else {
+      sendSerialCommand('CAL');
+    }
+  });
+
+  // --- Demo Simulation Mode ---
+  let demoStateIndex = 0;
+  let demoReading = 790;
+  let demoBaseline = 780;
+  let demoHold = 10.0;
+  let demoWarmup = 30;
+
+  function runDemoStep() {
+    const states = ['WARMUP', 'SOBER', 'DRUNK', 'HOLD', 'FAULT'];
+    const currentSim = states[demoStateIndex];
+
+    let tel = {
+      state: "SOBER - ignition allowed",
+      reading: 785,
+      baseline: demoBaseline,
+      diff: 5,
+      raw: 782,
+      is_drunk: false,
+      est_bac: 0.000,
+      ignition_allowed: true,
+      warmup_sec: 0,
+      hold_sec: 0.0
+    };
+
+    if (currentSim === 'WARMUP') {
+      tel.state = "WARMING UP";
+      tel.ignition_allowed = false;
+      tel.warmup_sec = demoWarmup;
+      demoWarmup -= 2;
+      if (demoWarmup <= 0) {
+        demoWarmup = 30;
+        demoStateIndex = 1; // transition to sober
+      }
+    } else if (currentSim === 'SOBER') {
+      demoReading = demoBaseline + Math.floor(Math.random() * 45);
+      tel.state = "SOBER - ignition allowed";
+      tel.reading = demoReading;
+      tel.diff = demoReading - demoBaseline;
+      tel.is_drunk = false;
+      tel.est_bac = (tel.diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
+      tel.ignition_allowed = true;
+    } else if (currentSim === 'DRUNK') {
+      demoReading = demoBaseline + 520 + Math.floor(Math.random() * 50);
+      tel.state = "DRUNK / INTOXICATED - ignition blocked";
+      tel.reading = demoReading;
+      tel.diff = demoReading - demoBaseline;
+      tel.is_drunk = true;
+      tel.est_bac = (tel.diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
+      tel.ignition_allowed = false;
+    } else if (currentSim === 'HOLD') {
+      demoReading = demoBaseline + 140; // cleared below hysteresis
+      tel.state = "DRUNK / INTOXICATED - ignition blocked";
+      tel.reading = demoReading;
+      tel.diff = demoReading - demoBaseline;
+      tel.is_drunk = true;
+      tel.est_bac = (tel.diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
+      tel.ignition_allowed = false;
+      tel.hold_sec = Math.max(0, demoHold).toFixed(1);
+      demoHold -= 1.0;
+      if (demoHold <= 0) {
+        demoHold = 10.0;
+        demoStateIndex = 1;
+      }
+    } else if (currentSim === 'FAULT') {
+      tel.state = "SENSOR FAULT - ignition blocked";
+      tel.reading = 4095;
+      tel.raw = 4095;
+      tel.is_drunk = false;
+      tel.ignition_allowed = false;
+    }
+
+    handleTelemetry(tel);
+  }
+
+  elBtnDemoToggle.addEventListener('click', () => {
+    isDemoMode = !isDemoMode;
+    if (isDemoMode) {
+      if (isConnected) disconnectSerial();
+      elBtnDemoToggle.classList.replace('btn-outline', 'btn-primary');
+      elBtnDemoToggle.textContent = 'Exit Demo';
+      elStatusDot.className = 'status-dot demo';
+      elConnStatusText.textContent = 'Demo Mode Active';
+      demoStateIndex = 1; // start in sober
+      demoInterval = setInterval(runDemoStep, 1000);
+      runDemoStep();
+    } else {
+      clearInterval(demoInterval);
+      demoInterval = null;
+      elBtnDemoToggle.classList.replace('btn-primary', 'btn-outline');
+      elBtnDemoToggle.textContent = 'Demo Mode';
+      elStatusDot.className = 'status-dot';
+      elConnStatusText.textContent = 'USB Offline';
+    }
+  });
+
+  elHeroCard.addEventListener('click', () => {
+    if (isDemoMode) {
+      demoStateIndex = (demoStateIndex + 1) % 5;
+      runDemoStep();
+    }
+  });
+
+  // Initial Boot
+  initChart();
+  loadStoredLogs();
+
+})();
+</script>
 </body>
 </html>
