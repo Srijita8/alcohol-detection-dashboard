@@ -34,8 +34,8 @@ const unsigned long TELEMETRY_MS     = 250;   // Send JSON over USB every 250ms 
 // Trip / release margins in ADC counts above the clean-air baseline.
 // Tuned to the test source (sanitiser / alcohol swab); NOT calibrated against a reference breathalyser.
 // Change at run time with the serial command:  MARGIN <on> <off>   (resets to these defaults on reboot)
-int marginOn  = 1100;   // Trip threshold: rise above baseline => DRUNK
-int marginOff = 65;   // Release threshold (hysteresis); also needs the HOLD_MS lockout hold
+int marginOn  = 110;   // Trip threshold: rise above baseline => DRUNK
+int marginOff = 40;   // Release threshold (hysteresis); also needs the HOLD_MS lockout hold
 
 // ---------- State Machine ----------
 enum State { WARMUP, SOBER, ALCOHOL, FAULT };
