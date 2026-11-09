@@ -1,2048 +1,449 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Breathalyzer & Sobriety Assessment Dashboard</title>
-  <style>
-    :root {
-      --bg-primary: #0b0f17;
-      --bg-surface: #141c2b;
-      --bg-card: #1b263b;
-      --bg-card-hover: #22324e;
-      --border-color: #2a3b56;
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      
-      --color-sober: #2e9e5b;
-      --color-sober-glow: rgba(46, 158, 91, 0.4);
-      --color-drunk: #d64545;
-      --color-drunk-glow: rgba(214, 69, 69, 0.4);
-      --color-caution: #e0a020;
-      --color-caution-glow: rgba(224, 160, 32, 0.4);
-      --color-blue: #3b82f6;
-      
-      --radius-sm: 8px;
-      --radius-md: 14px;
-      --radius-lg: 22px;
-      --shadow-sm: 0 3px 8px rgba(0,0,0,0.3);
-      --shadow-lg: 0 12px 30px -5px rgba(0,0,0,0.6);
-      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    [data-theme="light"] {
-      --bg-primary: #f1f5f9;
-      --bg-surface: #ffffff;
-      --bg-card: #f8fafc;
-      --bg-card-hover: #e2e8f0;
-      --border-color: #cbd5e1;
-      --text-primary: #0f172a;
-      --text-secondary: #475569;
-      --text-muted: #94a3b8;
-      --shadow-sm: 0 2px 6px rgba(0,0,0,0.06);
-      --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      font-family: var(--font-family);
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      line-height: 1.5;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 16px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    .container {
-      max-width: 1040px;
-      margin: 0 auto;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    /* Header */
-    header {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 14px 20px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #10b981, #047857);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
-    }
-
-    .brand-text h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .brand-text p {
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .conn-status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
-    }
-
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: var(--text-muted);
-      transition: background-color 0.3s ease;
-    }
-
-    .status-dot.online {
-      background-color: var(--color-sober);
-      box-shadow: 0 0 10px var(--color-sober);
-    }
-
-    .status-dot.demo {
-      background-color: var(--color-caution);
-      box-shadow: 0 0 10px var(--color-caution);
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-family: inherit;
-      font-size: 0.85rem;
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      user-select: none;
-    }
-
-    .btn-primary {
-      background: var(--color-blue);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #2563eb;
-      transform: translateY(-1px);
-    }
-
-    .btn-outline {
-      background: transparent;
-      border-color: var(--border-color);
-      color: var(--text-primary);
-    }
-
-    .btn-outline:hover {
-      background: var(--bg-card-hover);
-    }
-
-    .btn-danger {
-      background: #dc2626;
-      color: white;
-    }
-
-    .btn-success {
-      background: #16a34a;
-      color: white;
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
-    }
-
-    .btn-success:hover {
-      background: #15803d;
-      transform: translateY(-1px);
-    }
-
-    .btn-test {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: white;
-      font-size: 0.95rem;
-      padding: 10px 20px;
-      font-weight: 700;
-      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
-    }
-
-    .btn-test:hover {
-      background: linear-gradient(135deg, #2563eb, #1e40af);
-      transform: translateY(-2px);
-    }
-
-    .icon-btn {
-      padding: 8px;
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-sm);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      cursor: pointer;
-    }
-
-    .icon-btn:hover {
-      background: var(--bg-card-hover);
-    }
-
-    /* Browser Alert Banner */
-    .banner {
-      background: #854d0e;
-      color: #fef08a;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 0.88rem;
-      display: none;
-      align-items: center;
-      gap: 12px;
-    }
-
-    /* ========================================================
-       PRIMARY HERO CARD: SOBRIETY VERDICT (DRUNK OR SOBER)
-       ======================================================== */
-    .hero-verdict-card {
-      background: var(--bg-surface);
-      border: 3px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 30px 24px;
-      text-align: center;
-      box-shadow: var(--shadow-lg);
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* SOBER STATE */
-    .hero-verdict-card.state-sober {
-      background: linear-gradient(180deg, rgba(46, 158, 91, 0.22) 0%, var(--bg-surface) 100%);
-      border-color: var(--color-sober);
-    }
-
-    /* DRUNK STATE */
-    .hero-verdict-card.state-drunk {
-      background: linear-gradient(180deg, rgba(214, 69, 69, 0.28) 0%, var(--bg-surface) 100%);
-      border-color: var(--color-drunk);
-      animation: alertPulse 1.5s infinite;
-    }
-
-    /* WARMUP STATE */
-    .hero-verdict-card.state-warmup {
-      background: linear-gradient(180deg, rgba(224, 160, 32, 0.22) 0%, var(--bg-surface) 100%);
-      border-color: var(--color-caution);
-    }
-
-    /* SENSOR FAULT STATE */
-    .hero-verdict-card.state-fault {
-      background: linear-gradient(180deg, rgba(185, 28, 28, 0.3) 0%, var(--bg-surface) 100%);
-      border-color: #b91c1c;
-      animation: flashBorder 1s infinite alternate;
-    }
-
-    @keyframes alertPulse {
-      0%, 100% { box-shadow: 0 0 18px var(--color-drunk-glow); }
-      50% { box-shadow: 0 0 45px var(--color-drunk-glow); }
-    }
-
-    @keyframes flashBorder {
-      0% { border-color: #b91c1c; }
-      100% { border-color: #f87171; }
-    }
-
-    .verdict-header-row {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .verdict-pill {
-      font-size: 0.8rem;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border-radius: 999px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-    }
-
-    .verdict-title {
-      font-size: 2.5rem;
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      margin-bottom: 8px;
-      line-height: 1.2;
-    }
-
-    .verdict-subtitle {
-      font-size: 1.1rem;
-      color: var(--text-secondary);
-      max-width: 680px;
-      margin: 0 auto 20px auto;
-    }
-
-    /* Overview Highlights Grid */
-    .overview-strip {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      max-width: 720px;
-      margin: 0 auto 20px auto;
-    }
-
-    @media (max-width: 640px) {
-      .overview-strip {
-        grid-template-columns: 1fr;
-      }
-      .verdict-title {
-        font-size: 1.8rem;
-      }
-    }
-
-    .overview-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      text-align: center;
-    }
-
-    .overview-label {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .overview-value {
-      font-size: 1.35rem;
-      font-weight: 800;
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* Physical Relay and Virtual LEDs */
-    .interlock-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 12px 20px;
-      max-width: 580px;
-      margin: 0 auto;
-      flex-wrap: wrap;
-    }
-
-    .interlock-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-
-    .hw-led {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #334155;
-      transition: all 0.25s ease;
-    }
-
-    .hw-led.green-on {
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
-    }
-
-    .hw-led.red-on {
-      background: #ef4444;
-      box-shadow: 0 0 10px #ef4444;
-    }
-
-    .relay-badge {
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-    }
-
-    .relay-badge.allowed {
-      background: rgba(46, 158, 91, 0.25);
-      color: #4ade80;
-      border: 1px solid var(--color-sober);
-    }
-
-    .relay-badge.blocked {
-      background: rgba(214, 69, 69, 0.25);
-      color: #f87171;
-      border: 1px solid var(--color-drunk);
-    }
-
-    /* Active Countdown Alert Box */
-    .countdown-alert {
-      margin-top: 14px;
-      display: none;
-      background: rgba(0,0,0,0.35);
-      border-radius: var(--radius-sm);
-      padding: 10px 16px;
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: var(--color-caution);
-      border: 1px dashed var(--color-caution);
-    }
-
-    /* ========================================================
-       SOBRIETY SCALE VISUALIZER (INTOXICATION SPECTRUM)
-       ======================================================== */
-    .scale-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .scale-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .scale-track {
-      position: relative;
-      height: 24px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, 
-        #10b981 0%, 
-        #84cc16 25%, 
-        #f59e0b 50%, 
-        #ef4444 75%, 
-        #991b1b 100%
-      );
-      margin: 18px 0 28px 0;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-    }
-
-    .scale-pointer {
-      position: absolute;
-      top: -12px;
-      left: 0%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .pointer-bubble {
-      background: #ffffff;
-      color: #0f172a;
-      font-size: 0.72rem;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 6px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-      white-space: nowrap;
-    }
-
-    .pointer-arrow {
-      width: 0;
-      height: 0;
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-top: 8px solid #ffffff;
-      margin-top: -1px;
-    }
-
-    .scale-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .scale-markers {
-      position: relative;
-      width: 100%;
-      height: 14px;
-      margin-top: 4px;
-    }
-
-    .scale-marker-line {
-      position: absolute;
-      top: -28px;
-      height: 24px;
-      width: 2px;
-      background: rgba(255,255,255,0.7);
-    }
-
-    /* ========================================================
-       BREATH TEST SAMPLING MODAL / SECTION
-       ======================================================== */
-    .test-action-bar {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(30, 64, 175, 0.12));
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      border-radius: var(--radius-md);
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .test-action-text h3 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #93c5fd;
-    }
-
-    .test-action-text p {
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-    }
-
-    /* Modal for live breath test countdown */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(8px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .modal-card {
-      background: var(--bg-surface);
-      border: 2px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 30px;
-      max-width: 480px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-    }
-
-    .sampling-ring-container {
-      position: relative;
-      width: 180px;
-      height: 180px;
-      margin: 20px auto;
-    }
-
-    .sampling-ring-svg {
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
-    }
-
-    .ring-bg {
-      fill: none;
-      stroke: var(--border-color);
-      stroke-width: 12;
-    }
-
-    .ring-fill {
-      fill: none;
-      stroke: var(--color-blue);
-      stroke-width: 12;
-      stroke-linecap: round;
-      stroke-dasharray: 471;
-      stroke-dashoffset: 0;
-      transition: stroke-dashoffset 0.1s linear;
-    }
-
-    .ring-center-content {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .ring-countdown-num {
-      font-size: 3rem;
-      font-weight: 900;
-      color: #38bdf8;
-      line-height: 1;
-    }
-
-    .ring-unit {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    /* Grid Section for Gauge & Telemetry */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    @media (max-width: 768px) {
-      .dashboard-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 18px 20px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .card-title {
-      font-size: 0.92rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* Gauge */
-    .gauge-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 0;
-    }
-
-    .gauge-svg {
-      width: 240px;
-      height: 130px;
-      overflow: visible;
-    }
-
-    .gauge-bg {
-      fill: none;
-      stroke: var(--border-color);
-      stroke-width: 16;
-      stroke-linecap: round;
-    }
-
-    .gauge-fill {
-      fill: none;
-      stroke: var(--color-sober);
-      stroke-width: 16;
-      stroke-linecap: round;
-      stroke-dasharray: 251.3;
-      stroke-dashoffset: 251.3;
-      transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
-    }
-
-    .gauge-val-text {
-      font-size: 2.3rem;
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      margin-top: -26px;
-    }
-
-    .gauge-subtext {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-
-    /* Stats Grid */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 10px;
-    }
-
-    .stat-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-    }
-
-    .stat-label {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-    }
-
-    .stat-value {
-      font-size: 1.35rem;
-      font-weight: 700;
-      margin-top: 2px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .stat-hint {
-      font-size: 0.72rem;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    /* Canvas Chart */
-    .chart-box {
-      width: 100%;
-      height: 220px;
-      position: relative;
-      margin-top: 10px;
-    }
-
-    canvas#trendChart {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .chart-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-top: 10px;
-      justify-content: center;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .legend-line {
-      width: 16px;
-      height: 3px;
-      border-radius: 2px;
-    }
-
-    /* Event Log Table */
-    .table-container {
-      overflow-x: auto;
-      max-height: 250px;
-      margin-top: 10px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-      text-align: left;
-    }
-
-    th {
-      background: var(--bg-card);
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 8px 12px;
-      position: sticky;
-      top: 0;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    td {
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-primary);
-    }
-
-    .log-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-    }
-
-    .badge-sober { background: rgba(46, 158, 91, 0.25); color: #4ade80; }
-    .badge-drunk { background: rgba(214, 69, 69, 0.25); color: #f87171; }
-    .badge-warmup { background: rgba(224, 160, 32, 0.2); color: #facc15; }
-    .badge-fault { background: rgba(185, 28, 28, 0.25); color: #fca5a5; }
-
-    /* Footer */
-    footer {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 12px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 4px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driver Sobriety Assessment</title>
+<style>
+:root{--bg:#0b0f17;--sf:#141c2b;--cd:#1b263b;--bd:#2a3b56;--tx:#f8fafc;--t2:#94a3b8;--t3:#64748b;--ok:#2e9e5b;--bad:#d64545;--warn:#e0a020;--blue:#3b82f6;color-scheme:dark}
+@media(prefers-color-scheme:light){:root{--bg:#f1f5f9;--sf:#fff;--cd:#f8fafc;--bd:#cbd5e1;--tx:#0f172a;--t2:#475569;--t3:#94a3b8;color-scheme:light}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--tx);line-height:1.5;padding:16px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.card,header,.hero,.bar,.scale{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:16px 20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+h1{font-size:1.2rem}header p{font-size:.8rem;color:var(--t2)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font:600 .85rem inherit;font-family:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--bd);background:transparent;color:var(--tx);cursor:pointer}
+.btn:hover:not(:disabled){background:var(--cd)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.pri{background:var(--blue);border-color:var(--blue);color:#fff}.pri:hover:not(:disabled){background:#2563eb}
+.dng{background:#dc2626;border-color:#dc2626;color:#fff}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border-radius:999px;background:var(--cd);border:1px solid var(--bd)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--t3)}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}.dot.demo{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.banner{display:none;background:#854d0e;color:#fef08a;padding:10px 14px;border-radius:8px;font-size:.85rem}
+.hero{text-align:center;border-width:3px;padding:26px 20px;transition:.3s}
+.hero.warmup{border-color:var(--warn);background:linear-gradient(#e0a02038,var(--sf))}
+.hero.sober{border-color:var(--ok);background:linear-gradient(#2e9e5b38,var(--sf))}
+.hero.drunk{border-color:var(--bad);background:linear-gradient(#d6454547,var(--sf));animation:pulse 1.5s infinite}
+.hero.fault{border-color:#b91c1c;background:linear-gradient(#b91c1c4d,var(--sf));animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 36px #d6454566}}
+.vt{font-size:2.2rem;font-weight:900;letter-spacing:-.02em;margin:10px 0 6px;line-height:1.2}
+.vs{color:var(--t2);max-width:680px;margin:0 auto 16px}
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:720px;margin:0 auto 16px}
+.ov,.sb{background:var(--cd);border:1px solid var(--bd);border-radius:8px;padding:10px}
+.lb{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700}
+.ov b{font-size:1.25rem;font-variant-numeric:tabular-nums;display:block}
+.il{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:10px 16px;max-width:720px;margin:0 auto;font-size:.82rem;font-weight:600}
+.il span{display:flex;align-items:center;gap:7px}
+.led{width:12px;height:12px;border-radius:50%;background:#334155}.led.g{background:#10b981;box-shadow:0 0 9px #10b981}.led.r{background:#ef4444;box-shadow:0 0 9px #ef4444}
+.led.blink{background:#ef4444;animation:bl .8s steps(1) infinite}@keyframes bl{50%{background:#334155;box-shadow:none}}
+.rb{padding:3px 10px;border-radius:6px;font-weight:800;font-size:.75rem}.rb.a{background:#2e9e5b40;color:#4ade80}.rb.b{background:#d6454540;color:#f87171}
+#cd{display:none;margin:14px auto 0;max-width:520px;background:#0006;border:1px dashed var(--warn);border-radius:8px;padding:8px 14px;font-size:.85rem;font-weight:700;color:var(--warn)}
+#cd i{display:block;height:6px;border-radius:3px;background:var(--warn);width:0;margin-top:6px;transition:width .3s}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-color:#3b82f659}
+.bar p{font-size:.8rem;color:var(--t2)}.bar h3{font-size:1rem}
+.track{position:relative;height:22px;border-radius:11px;background:linear-gradient(90deg,#10b981,#84cc16 25%,#f59e0b 50%,#ef4444 75%,#991b1b);margin:30px 0 30px}
+.ptr{position:absolute;top:-30px;left:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;transition:left .3s}
+.ptr b{background:#fff;color:#0f172a;font-size:.7rem;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.ptr i{border:6px solid transparent;border-top:8px solid #fff;border-bottom:0}
+.mk{position:absolute;top:-4px;left:60%;width:2px;height:30px;background:#fffb}
+.ticks{position:relative;height:16px;font-size:.7rem;font-weight:700;color:var(--t2)}
+.ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:768px){.grid{grid-template-columns:1fr}.strip{grid-template-columns:1fr}.vt{font-size:1.6rem}}
+.ct{font-size:.85rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.gauge{text-align:center}.gauge svg{width:240px;height:130px}
+.gb{fill:none;stroke:var(--bd);stroke-width:16;stroke-linecap:round}
+.gf{fill:none;stroke:var(--ok);stroke-width:16;stroke-linecap:round;stroke-dasharray:251.3;stroke-dashoffset:251.3;transition:.3s}
+#gv{font-size:2.2rem;font-weight:900;margin-top:-28px}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sb b{display:block;font-size:1.25rem;font-variant-numeric:tabular-nums}.sb small{font-size:.7rem;color:var(--t2)}
+.mg{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:12px}
+.mg label{font-size:.7rem;color:var(--t3);font-weight:700;text-transform:uppercase;display:block}
+.mg input{width:84px;padding:6px 8px;border-radius:8px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-size:.9rem}
+canvas{width:100%;height:220px;display:block}
+.lg{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:.75rem;color:var(--t2);margin-top:8px}
+.lg i{display:inline-block;width:14px;height:3px;margin-right:5px;vertical-align:middle}
+.tw{overflow:auto;max-height:240px;border:1px solid var(--bd);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{background:var(--cd);color:var(--t3);text-align:left;padding:7px 10px;position:sticky;top:0}
+td{padding:7px 10px;border-top:1px solid var(--bd)}
+.bd{padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:800}
+.SOBER{background:#2e9e5b40;color:#4ade80}.DRUNK{background:#d6454540;color:#f87171}.WARMUP{background:#e0a02033;color:#facc15}.FAULT{background:#b91c1c40;color:#fca5a5}
+#msgs{font:.78rem ui-monospace,Consolas,monospace;max-height:130px;overflow:auto;color:var(--t2)}
+#msgs .w{color:var(--warn)}
+.note{font-size:.75rem;color:var(--t3);text-align:center}
+.modal{position:fixed;inset:0;background:#000c;backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;z-index:9}
+.mc{background:var(--sf);border:2px solid var(--bd);border-radius:22px;padding:28px;max-width:460px;width:100%;text-align:center}
+.ring{position:relative;width:170px;height:170px;margin:16px auto}.ring svg{transform:rotate(-90deg);width:100%;height:100%}
+.ring circle{fill:none;stroke-width:12}.rbg{stroke:var(--bd)}.rf{stroke:var(--blue);stroke-linecap:round;stroke-dasharray:440;stroke-dashoffset:0;transition:stroke-dashoffset .3s linear}
+.rn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:3rem;font-weight:900;color:#38bdf8;line-height:1}.rn small{font-size:.7rem;color:var(--t3);text-transform:uppercase}
+</style>
 </head>
 <body>
-
-<div class="container">
-
-  <!-- Header -->
-  <header>
-    <div class="brand">
-      <div class="brand-icon">🛡️</div>
-      <div class="brand-text">
-        <h1>Driver Sobriety Assessment</h1>
-        <p>ESP32 + MQ-3 Ignition Interlock System</p>
-      </div>
-    </div>
-
-    <div class="header-actions">
-      <!-- Status Badge -->
-      <div class="conn-status-badge">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="connStatusText">USB Offline</span>
-      </div>
-
-      <!-- USB Connect Button -->
-      <button class="btn btn-primary" id="btnConnectSerial">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        Connect USB
-      </button>
-
-      <!-- Demo Toggle -->
-      <button class="btn btn-outline" id="btnDemoToggle">
-        Demo Mode
-      </button>
-
-      <!-- Sound Mute Toggle -->
-      <button class="icon-btn" id="btnSoundToggle" title="Toggle Alarm Sound">
-        <span id="soundIcon">🔊</span>
-      </button>
-
-      <!-- Theme Toggle -->
-      <button class="icon-btn" id="btnThemeToggle" title="Toggle Theme">
-        <span id="themeIcon">🌙</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- Browser Support Alert -->
-  <div class="banner" id="browserCompatAlert">
-    <span>⚠️ <strong>Web Serial Not Supported:</strong> Your browser lacks Web Serial API. Please use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on Windows/Mac to connect directly via USB, or activate <strong>Demo Mode</strong>.</span>
+<div class="wrap">
+<header>
+  <div><h1>🛡️ Driver Sobriety Assessment</h1><p>ESP32 + MQ-3 Ignition Interlock · USB telemetry</p></div>
+  <div class="row">
+    <span class="pill"><span class="dot" id="dot"></span><span id="conn">USB Offline</span></span>
+    <button class="btn pri" id="bConn">Connect USB</button>
+    <button class="btn" id="bDemo">Demo Mode</button>
+    <button class="btn" id="bSnd" title="Alarm sound">🔊</button>
   </div>
+</header>
+<div class="banner" id="compat">⚠️ <b>Web Serial not supported.</b> Use Chrome or Edge on desktop to connect via USB, or try Demo Mode.</div>
 
-  <!-- ========================================================
-       PRIMARY HERO CARD: DRUNK OR SOBER OVERVIEW
-       ======================================================== -->
-  <section class="hero-verdict-card state-warmup" id="heroCard">
-    <div class="verdict-header-row">
-      <span class="verdict-pill" id="verdictPill">ASSESSING SENSOR</span>
-      <span class="verdict-pill" id="lastPollTag">Awaiting Data</span>
-    </div>
-
-    <!-- MAIN DECISION HEADLINE -->
-    <h2 class="verdict-title" id="verdictHeadline">WARMING UP SENSOR...</h2>
-    <p class="verdict-subtitle" id="verdictSubtitle">
-      Sensor heater is preheating. Keep sensor in clean ambient air before taking a breath test.
-    </p>
-
-    <!-- SOBRIETY OVERVIEW 3-METRIC STRIP -->
-    <div class="overview-strip">
-      <div class="overview-item">
-        <div class="overview-label">Is Person Drunk?</div>
-        <div class="overview-value" id="drunkAnswerText" style="color:var(--color-caution);">PENDING</div>
-      </div>
-      <div class="overview-item">
-        <div class="overview-label">Estimated BAC</div>
-        <div class="overview-value" id="bacEstimateText">0.000%</div>
-      </div>
-      <div class="overview-item">
-        <div class="overview-label">Vehicle Ignition</div>
-        <div class="overview-value" id="ignitionAnswerText" style="color:var(--color-drunk);">LOCKED</div>
-      </div>
-    </div>
-
-    <!-- Hardware Relay & Virtual LED Indicators -->
-    <div class="interlock-bar">
-      <div class="interlock-item">
-        <span>STARTER RELAY:</span>
-        <span class="relay-badge blocked" id="relayBadge">LOCKED (DISABLED)</span>
-      </div>
-      <div class="interlock-item">
-        <span class="hw-led" id="ledGreen"></span>
-        <span>Pin 26 (Sober Green)</span>
-      </div>
-      <div class="interlock-item">
-        <span class="hw-led" id="ledRed"></span>
-        <span>Pin 27 (Drunk Red)</span>
-      </div>
-    </div>
-
-    <!-- Dynamic Countdown Timer -->
-    <div class="countdown-alert" id="countdownBox">
-      <span id="countdownText">Sensor stabilizing...</span>
-    </div>
-  </section>
-
-  <!-- ========================================================
-       BREATH TEST ACTION BAR (COLLECT SAMPLE)
-       ======================================================== -->
-  <section class="test-action-bar">
-    <div class="test-action-text">
-      <h3>🌬️ Breathalyzer Sample Collection</h3>
-      <p>Initiate a 5-second breath test cycle to collect readings and generate a formal sobriety verdict.</p>
-    </div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn btn-test" id="btnStartBreathTest">
-        🚀 Collect Breath Sample
-      </button>
-      <button class="btn btn-outline" id="btnCalibrateCleanAir">
-        🎯 Zero Clean Air
-      </button>
-    </div>
-  </section>
-
-  <!-- ========================================================
-       INTOXICATION SPECTRUM / SCALE VISUALIZER
-       ======================================================== -->
-  <section class="scale-card">
-    <div class="scale-header">
-      <div style="font-size:0.85rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.05em;">
-        Intoxication Severity Spectrum
-      </div>
-      <div style="font-size:0.82rem; font-weight:700;" id="scaleZoneLabel">
-        Zone: Clean Air (0.000% BAC)
-      </div>
-    </div>
-
-    <div class="scale-track">
-      <!-- Pointer indicator -->
-      <div class="scale-pointer" id="scalePointer" style="left: 0%;">
-        <div class="pointer-bubble" id="pointerText">0.000% BAC</div>
-        <div class="pointer-arrow"></div>
-      </div>
-      <!-- Marker for 0.08% legal trip threshold (60% position on track) -->
-      <div class="scale-marker-line" style="left: 60%;" title="Legal Drunk Threshold (0.08% BAC)"></div>
-    </div>
-
-    <div class="scale-labels">
-      <span style="color:#10b981;">0.00% Zero</span>
-      <span style="color:#84cc16;">0.02% Trace</span>
-      <span style="color:#f59e0b;">0.05% Limit</span>
-      <span style="color:#ef4444;">0.08% Drunk (Trip)</span>
-      <span style="color:#991b1b;">0.15%+ High</span>
-    </div>
-  </section>
-
-  <!-- ========================================================
-       MIDDLE GRID: GAUGE & SENSOR HARDWARE METRICS
-       ======================================================== -->
-  <div class="dashboard-grid">
-    <!-- Live Breath Difference Gauge -->
-    <div class="card">
-      <div class="card-title">
-        <span>Alcohol Reading Gauge</span>
-        <span id="readingDiffLabel">+0 counts</span>
-      </div>
-      
-      <div class="gauge-container">
-        <svg class="gauge-svg" viewBox="0 0 200 110">
-          <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
-          <path class="gauge-fill" id="gaugeFillPath" d="M 20 100 A 80 80 0 0 1 180 100" />
-        </svg>
-
-        <div class="gauge-val-text" id="gaugeVal">0</div>
-        <div class="gauge-subtext" id="gaugeSub">Counts Above Clean Air</div>
-      </div>
-
-      <div style="margin-top: 10px; font-size: 0.82rem; text-align: center; color: var(--text-secondary);">
-        <span id="headroomText">Safety margin: 400 counts until drunk threshold</span>
-      </div>
-    </div>
-
-    <!-- Live Hardware Diagnostics -->
-    <div class="card">
-      <div class="card-title">
-        <span>Hardware Diagnostics</span>
-        <span style="font-size:0.75rem; color:var(--text-muted);">GPIO 34 ADC (10k/10k)</span>
-      </div>
-
-      <div class="stats-row">
-        <div class="stat-box">
-          <div class="stat-label">Smoothed ADC</div>
-          <div class="stat-value" id="statReading">--</div>
-          <div class="stat-hint">Active filtered breath</div>
-        </div>
-
-        <div class="stat-box">
-          <div class="stat-label">Clean Baseline</div>
-          <div class="stat-value" id="statBaseline">--</div>
-          <div class="stat-hint">Reference zero</div>
-        </div>
-
-        <div class="stat-box">
-          <div class="stat-label">Raw 12-bit ADC</div>
-          <div class="stat-value" id="statRaw">--</div>
-          <div class="stat-hint">Range: 0 - 4095</div>
-        </div>
-
-        <div class="stat-box">
-          <div class="stat-label">Trip Margin</div>
-          <div class="stat-value" style="color:var(--color-drunk)">+400</div>
-          <div class="stat-hint">Hysteresis: +250</div>
-        </div>
-      </div>
-
-      <div style="margin-top: 12px; font-size: 0.78rem; color: var(--text-muted); display:flex; justify-content:space-between;">
-        <span>Legal Threshold: 0.080% BAC</span>
-        <span>Sensor: MQ-3 Semiconductor</span>
-      </div>
-    </div>
+<section class="hero warmup" id="hero">
+  <div class="row" style="justify-content:center"><span class="pill" id="vPill">WAITING FOR DEVICE</span><span class="pill" id="vPoll">Awaiting data</span></div>
+  <h2 class="vt" id="vH">CONNECT DEVICE</h2>
+  <p class="vs" id="vS">Connect the ESP32 over USB (115200 baud) or start Demo Mode.</p>
+  <div class="strip">
+    <div class="ov"><span class="lb">Is person drunk?</span><b id="oAns">—</b></div>
+    <div class="ov"><span class="lb">Est. BAC (uncalibrated)</span><b id="oBac">0.000%</b></div>
+    <div class="ov"><span class="lb">Vehicle ignition</span><b id="oIgn">LOCKED</b></div>
   </div>
+  <div class="il">
+    <span>RELAY (GPIO 14): <b class="rb b" id="relay">LOCKED</b></span>
+    <span><i class="led" id="lG"></i>GPIO 26 Green</span>
+    <span><i class="led" id="lR"></i>GPIO 27 Red</span>
+  </div>
+  <div id="cd"><span id="cdT"></span><i id="cdB"></i></div>
+</section>
 
-  <!-- Realtime 5-Minute Trend Chart -->
+<section class="bar">
+  <div><h3>🌬️ Breath Sample</h3><p>5-second peak capture after warm-up. The firmware interlock decides on its own; this logs a formal sample result.</p></div>
+  <div class="row">
+    <button class="btn pri" id="bTest">🚀 Collect Sample</button>
+    <button class="btn" id="bCal" title="Firmware only accepts CAL in SOBER state">🎯 Zero Clean Air</button>
+    <button class="btn" id="bSelf">💡 LED Self-test</button>
+  </div>
+</section>
+
+<section class="scale">
+  <div class="ct"><span>Intoxication spectrum</span><span id="zone">Zone: —</span></div>
+  <div class="track"><div class="ptr" id="ptr"><b id="ptrT">0.000%</b><i></i></div><div class="mk"></div></div>
+  <div class="ticks"><span style="left:0;transform:none">0.00%</span><span style="left:15%">0.02%</span><span style="left:37.5%">0.05%</span><span style="left:60%">0.08% trip</span><span style="left:100%;transform:translateX(-100%)">0.13%+</span></div>
+</section>
+
+<div class="grid">
   <div class="card">
-    <div class="card-title">
-      <span>Continuous Breath Telemetry (5-Minute Window)</span>
-      <span style="font-size:0.75rem; color:var(--text-muted);">Live Plotting</span>
-    </div>
-
-    <div class="chart-box">
-      <canvas id="trendChart"></canvas>
-    </div>
-
-    <div class="chart-legend">
-      <div class="legend-item">
-        <span class="legend-line" style="background:#38bdf8;"></span>
-        <span>Breath Reading</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-line" style="background:#10b981; border-top:1px dashed #10b981;"></span>
-        <span>Clean Baseline</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-line" style="background:#f59e0b; border-top:1px dashed #f59e0b;"></span>
-        <span>Caution (+250)</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-line" style="background:#ef4444; border-top:1px dashed #ef4444;"></span>
-        <span>Drunk Threshold (+400)</span>
-      </div>
+    <div class="ct"><span>Alcohol reading gauge</span><span id="dLbl">+0 counts</span></div>
+    <div class="gauge">
+      <svg viewBox="0 0 200 110"><path class="gb" d="M 20 100 A 80 80 0 0 1 180 100"/><path class="gf" id="gf" d="M 20 100 A 80 80 0 0 1 180 100"/></svg>
+      <div id="gv">0</div>
+      <div style="font-size:.8rem;color:var(--t2)" id="head">—</div>
     </div>
   </div>
-
-  <!-- Sobriety Test Audit Log -->
   <div class="card">
-    <div class="card-title">
-      <span>Sobriety Audit Log</span>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="verdict-pill" id="tripCounterTag" style="color:var(--color-drunk); border-color:var(--color-drunk);">0 Drunk Incidents</span>
-        <button class="btn btn-outline" style="padding:4px 10px; font-size:0.75rem;" id="btnExportLog">Export CSV</button>
-        <button class="btn btn-outline" style="padding:4px 10px; font-size:0.75rem;" id="btnClearLog">Clear Log</button>
-      </div>
+    <div class="ct"><span>Diagnostics</span><span style="font-size:.7rem;color:var(--t3)">GPIO 34 · 12-bit ADC</span></div>
+    <div class="st">
+      <div class="sb"><span class="lb">Smoothed ADC</span><b id="sR">--</b><small>Filtered reading</small></div>
+      <div class="sb"><span class="lb">Clean baseline</span><b id="sB">--</b><small>Set after warm-up</small></div>
+      <div class="sb"><span class="lb">Raw ADC</span><b id="sW">--</b><small>0 – 4095</small></div>
+      <div class="sb"><span class="lb">Trip / release</span><b id="sM">+1100 / +65</b><small>Lockout hold 10 s</small></div>
     </div>
-
-    <div class="table-container">
-      <table id="logTable">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Sobriety Status</th>
-            <th>Est. BAC</th>
-            <th>Peak ADC</th>
-            <th>Ignition Interlock</th>
-          </tr>
-        </thead>
-        <tbody id="logTableBody"></tbody>
-      </table>
+    <div class="mg">
+      <div><label for="mOn">Trip (on)</label><input id="mOn" type="number" min="20" value="1100"></div>
+      <div><label for="mOff">Release (off)</label><input id="mOff" type="number" min="5" value="65"></div>
+      <button class="btn pri" id="mApply">Apply</button>
+      <button class="btn" id="mDef">Defaults</button>
     </div>
-  </div>
-
-  <!-- Footer -->
-  <footer>
-    <div>Last Telemetry: <span id="lastUpdateSpan">Never</span></div>
-    <div>Baseline: <span id="footerBaselineSpan">None</span></div>
-    <div>System Interlock: <span id="footerInterlockSpan" style="font-weight:700;">SAFE</span></div>
-  </footer>
-
-</div>
-
-<!-- ========================================================
-     MODAL: BREATH TEST IN PROGRESS (COUNTDOWN & SAMPLING)
-     ======================================================== -->
-<div class="modal-overlay" id="testModal">
-  <div class="modal-card">
-    <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:6px;" id="modalTitle">BREATH SAMPLING ACTIVE</h2>
-    <p style="color:var(--text-secondary); font-size:0.9rem;" id="modalInstruction">
-      Blow continuously and steadily into the MQ-3 sensor now!
-    </p>
-
-    <!-- Animated Countdown Ring -->
-    <div class="sampling-ring-container">
-      <svg class="sampling-ring-svg" viewBox="0 0 160 160">
-        <circle class="ring-bg" cx="80" cy="80" r="70" />
-        <circle class="ring-fill" id="modalRingFill" cx="80" cy="80" r="70" />
-      </svg>
-      <div class="ring-center-content">
-        <div class="ring-countdown-num" id="modalCountdownNum">5</div>
-        <div class="ring-unit">Seconds</div>
-      </div>
-    </div>
-
-    <div style="background:var(--bg-card); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:18px;">
-      <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Peak Sample Captured</div>
-      <div style="font-size:1.4rem; font-weight:800; margin-top:2px;" id="modalPeakReading">0 counts (0.000% BAC)</div>
-    </div>
-
-    <button class="btn btn-outline" id="btnCancelTest" style="width:100%;">
-      Cancel Sample
-    </button>
+    <p style="font-size:.72rem;color:var(--t3);margin-top:6px">Sends <code>MARGIN &lt;on&gt; &lt;off&gt;</code>; needs on ≥ 20, 5 ≤ off &lt; on. Resets to firmware defaults on reboot.</p>
   </div>
 </div>
 
-<!-- Application Logic -->
+<div class="card">
+  <div class="ct"><span>Telemetry (5-minute window)</span><span style="font-size:.7rem;color:var(--t3)">Live</span></div>
+  <canvas id="cv"></canvas>
+  <div class="lg">
+    <span><i style="background:#38bdf8"></i>Reading</span><span><i style="background:#10b981"></i>Baseline</span>
+    <span><i style="background:#f59e0b"></i><span id="lgOff">Release</span></span><span><i style="background:#ef4444"></i><span id="lgOn">Trip</span></span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="ct"><span>Device messages</span></div>
+  <div id="msgs">No messages yet.</div>
+</div>
+
+<div class="card">
+  <div class="ct"><span>Audit log</span>
+    <span class="row"><span class="pill" id="trips" style="color:var(--bad)">0 drunk today</span>
+    <button class="btn" id="bExp" style="padding:4px 10px;font-size:.75rem">Export CSV</button>
+    <button class="btn" id="bClr" style="padding:4px 10px;font-size:.75rem">Clear</button></span></div>
+  <div class="tw"><table><thead><tr><th>Time</th><th>Status</th><th>Est. BAC</th><th>Peak ADC</th><th>Trip</th><th>Ignition</th><th>Source</th></tr></thead><tbody id="tb"></tbody></table></div>
+</div>
+<p class="note">Indicative only. Margins are tuned to a test source (sanitiser/swab), not calibrated against a reference breathalyser, so BAC values are estimates and unsuitable for legal or safety-critical use.</p>
+</div>
+
+<div class="modal" id="modal"><div class="mc">
+  <h2 id="mT">SAMPLING — BLOW STEADILY</h2>
+  <p style="color:var(--t2);font-size:.9rem" id="mI">Blow continuously into the MQ-3 sensor.</p>
+  <div class="ring"><svg viewBox="0 0 160 160"><circle class="rbg" cx="80" cy="80" r="70"/><circle class="rf" id="rf" cx="80" cy="80" r="70"/></svg><div class="rn"><span id="mN">5</span><small>seconds</small></div></div>
+  <div class="sb" style="margin-bottom:14px"><span class="lb">Peak captured</span><b id="mP">0 counts</b></div>
+  <button class="btn" id="mC" style="width:100%">Cancel</button>
+</div></div>
+
 <script>
-(() => {
-  'use strict';
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const BAUD=115200,LIMIT=0.08,WARM_TOTAL=120,MAXPTS=1200,KEY='sober_logs_v3',DEF={on:1100,off:65};
+let M={...DEF},port,reader,closed,connected=false,demo=false,demoTimer,sound=true,lastCode=null,logs=[],msgs=[],lastT=null;
+let sampling=false,sTimer,sLeft=5,sPeak=0,sReading=0,chart={r:[],b:[]},audio;
 
-  // --- Configuration Constants ---
-  const BAUD_RATE = 115200;
-  const MARGIN_ON = 400;      // +400 counts calibrated to 0.080% BAC (Drunk)
-  const MARGIN_OFF = 250;     // +250 counts calibrated to 0.050% BAC (Caution reset)
-  const BAC_LEGAL_LIMIT = 0.080;
-  const CHART_MAX_POINTS = 300;
-  const STORAGE_KEY_LOGS = 'sober_test_logs_v2';
-  const STORAGE_KEY_SOUND = 'sober_sound_enabled';
-  const STORAGE_KEY_THEME = 'sober_theme';
+/* ---------- state presentation ---------- */
+const V={
+ WARMUP:{cls:'warmup',pill:'PREHEATING SENSOR',h:'SENSOR WARMING UP…',c:'var(--warn)',ans:'WAIT',ign:'LOCKED',relay:'LOCKED (WARMUP)',rc:'b',g:0,r:'blink'},
+ SOBER:{cls:'sober',pill:'SOBRIETY VERIFIED',h:'PERSON IS SOBER — FIT TO DRIVE',c:'var(--ok)',ans:'NO (SOBER)',ign:'ALLOWED',relay:'PERMITTED (ENABLED)',rc:'a',g:1,r:''},
+ DRUNK:{cls:'drunk',pill:'ALCOHOL DETECTED',h:'PERSON IS DRUNK — DO NOT DRIVE',c:'var(--bad)',ans:'YES (DRUNK)',ign:'LOCKED',relay:'LOCKED (INTERLOCK)',rc:'b',g:0,r:'r'},
+ FAULT:{cls:'fault',pill:'SENSOR FAULT',h:'HARDWARE FAULT — TEST INVALID',c:'#f87171',ans:'ERROR',ign:'BLOCKED',relay:'LOCKED (FAULT)',rc:'b',g:0,r:'blink'}
+};
 
-  // --- Application State ---
-  let serialPort = null;
-  let serialReader = null;
-  let readableStreamClosed = null;
-  let isConnected = false;
-  let isDemoMode = false;
-  let demoInterval = null;
-  let soundEnabled = localStorage.getItem(STORAGE_KEY_SOUND) !== 'false';
-  let drunkCountToday = 0;
-  let lastRecordedState = null;
-  let eventLogs = [];
+function beep(bad){
+ if(!sound)return;
+ try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume();
+  const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;
+  o.connect(g);g.connect(audio.destination);
+  if(bad){o.type='sawtooth';o.frequency.setValueAtTime(880,t);o.frequency.exponentialRampToValueAtTime(320,t+.45);g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.01,t+.45);o.start();o.stop(t+.46)}
+  else{o.frequency.setValueAtTime(587,t);o.frequency.setValueAtTime(880,t+.12);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.01,t+.35);o.start();o.stop(t+.36)}
+ }catch(e){}
+}
 
-  // Active breath sampling session state
-  let isSamplingActive = false;
-  let samplingTimer = null;
-  let samplingRemainingSec = 5;
-  let samplePeakDiff = 0;
-  let samplePeakReading = 0;
+/* ---------- messages & logs ---------- */
+function addMsg(src,text,warn){
+ msgs.unshift({t:new Date().toLocaleTimeString(),src,text,warn});msgs=msgs.slice(0,25);
+ $('msgs').innerHTML=msgs.map(m=>`<div class="${m.warn?'w':''}">[${m.t}] ${m.src}: ${m.text}</div>`).join('');
+}
+function deviceMsg(d){
+ const w='warning' in d||'unknown_command' in d;
+ let t=d.info||d.warning||d.action||(d.status?d.status+(d.state?' → '+d.state:''):null)||('pong' in d?'pong':null)||(d.unknown_command?'unknown command: '+d.unknown_command:JSON.stringify(d));
+ if(d.margin_on&&d.action){M.on=d.margin_on;M.off=d.margin_off;syncMargins(true);t+=` (trip +${d.margin_on}, release +${d.margin_off})`}
+ if(d.baseline&&d.info)t+=` (${d.baseline})`;
+ addMsg('device',String(t).replace(/</g,'&lt;'),w);
+}
+function loadLogs(){try{logs=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){logs=[]}renderLogs()}
+function saveLogs(){try{localStorage.setItem(KEY,JSON.stringify(logs.slice(0,100)))}catch(e){}}
+function logEvent(e){logs.unshift(e);saveLogs();renderLogs()}
+function renderLogs(){
+ const today=new Date().toDateString();
+ $('trips').textContent=logs.filter(l=>l.status==='DRUNK'&&new Date(l.ts).toDateString()===today).length+' drunk today';
+ $('tb').innerHTML=logs.length?logs.slice(0,50).map(l=>`<tr><td>${new Date(l.ts).toLocaleTimeString()}</td><td><span class="bd ${l.status}">${l.status}</span></td><td><b>${l.bac.toFixed(3)}%</b></td><td>${l.reading}</td><td>+${l.on}</td><td style="font-weight:700;color:${l.ign?'#4ade80':'#f87171'}">${l.ign?'ALLOWED':'LOCKED'}</td><td>${l.src}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--t3)">No events recorded yet.</td></tr>';
+}
+$('bClr').onclick=()=>{if(confirm('Clear audit log?')){logs=[];saveLogs();renderLogs()}};
+$('bExp').onclick=()=>{
+ if(!logs.length)return alert('Log is empty.');
+ const csv='Timestamp,Status,EstBAC,PeakADC,Baseline,MarginOn,MarginOff,IgnitionAllowed,Source\n'+logs.map(l=>[l.ts,l.status,l.bac.toFixed(3),l.reading,l.baseline,l.on,l.off,l.ign,l.src].join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='sobriety_log_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(a.href);
+};
 
-  // Chart data buffer
-  const chartData = {
-    timestamps: [],
-    readings: [],
-    baselines: []
-  };
+/* ---------- margins ---------- */
+function syncMargins(force){
+ $('sM').textContent=`+${M.on} / +${M.off}`;
+ $('lgOn').textContent=`Trip (+${M.on})`;$('lgOff').textContent=`Release (+${M.off})`;
+ if(force||(document.activeElement!==$('mOn')&&document.activeElement!==$('mOff'))){$('mOn').value=M.on;$('mOff').value=M.off}
+}
+function applyMargins(a,b){
+ if(!(a>=20&&b>=5&&b<a))return addMsg('dashboard','Invalid margins: need on ≥ 20 and 5 ≤ off < on',true);
+ if(demo){M={on:a,off:b};syncMargins(true);addMsg('demo',`Margins set to +${a} / +${b}`)}
+ else if(connected)send(`MARGIN ${a} ${b}`);
+ else addMsg('dashboard','Connect the device first.',true);
+}
+$('mApply').onclick=()=>applyMargins(+$('mOn').value,+$('mOff').value);
+$('mDef').onclick=()=>{$('mOn').value=DEF.on;$('mOff').value=DEF.off;applyMargins(DEF.on,DEF.off)};
 
-  // --- DOM Elements ---
-  const elStatusDot = document.getElementById('statusDot');
-  const elConnStatusText = document.getElementById('connStatusText');
-  const elBtnConnectSerial = document.getElementById('btnConnectSerial');
-  const elBtnDemoToggle = document.getElementById('btnDemoToggle');
-  const elBtnSoundToggle = document.getElementById('btnSoundToggle');
-  const elSoundIcon = document.getElementById('soundIcon');
-  const elBtnThemeToggle = document.getElementById('btnThemeToggle');
-  const elThemeIcon = document.getElementById('themeIcon');
-  const elBrowserAlert = document.getElementById('browserCompatAlert');
+/* ---------- gauge, scale, chart ---------- */
+function gauge(diff,bac){
+ const max=M.on*1.5,f=Math.max(0,Math.min(diff,max))/max;
+ $('gf').style.strokeDashoffset=251.3*(1-f);
+ $('gf').style.stroke=diff>=M.on?'var(--bad)':diff>=M.on*.625?'var(--warn)':'var(--ok)';
+ $('gv').textContent=diff>0?'+'+diff:diff;$('dLbl').textContent=(diff>0?'+':'')+diff+' counts';
+ $('head').textContent=diff>=M.on?`Over trip point by +${diff-M.on} counts`:`${M.on-diff} counts until trip point (+${M.on})`;
+ $('ptr').style.left=Math.min(100,bac/(LIMIT/.6)*100)+'%';$('ptrT').textContent=bac.toFixed(3)+'%';
+ const z=bac>=LIMIT?['Intoxicated','var(--bad)']:bac>=.045?['Impaired / caution','var(--warn)']:bac>=.015?['Trace alcohol','#84cc16']:['Clean air / sober','var(--ok)'];
+ $('zone').textContent=`Zone: ${z[0]} (${bac.toFixed(3)}%)`;$('zone').style.color=z[1];
+}
+function size(){const c=$('cv'),d=devicePixelRatio||1,r=c.getBoundingClientRect();c.width=r.width*d;c.height=r.height*d}
+function draw(){
+ const c=$('cv'),x=c.getContext('2d'),d=devicePixelRatio||1,W=c.width/d,H=c.height/d;
+ x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,W,H);
+ if(!chart.r.length){x.fillStyle='#64748b';x.font='14px sans-serif';x.textAlign='center';x.fillText('Awaiting live readings…',W/2,H/2);return}
+ const p={t:14,r:20,b:20,l:44},pw=W-p.l-p.r,ph=H-p.t-p.b;
+ const base=chart.b[chart.b.length-1]||0,mn=Math.min(...chart.r),mx=Math.max(...chart.r);
+ const lo=Math.max(0,Math.min(base||mn,mn)-80),hi=Math.max(base?base+M.on*1.15:mx,mx)+40;
+ const Y=v=>p.t+ph-(v-lo)/(hi-lo)*ph,X=i=>p.l+i/Math.max(1,chart.r.length-1)*pw;
+ const step=Math.max(50,Math.round((hi-lo)/5/50)*50);
+ x.lineWidth=1;x.setLineDash([]);x.font='10px sans-serif';x.textAlign='right';
+ for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step){x.strokeStyle='#7f8ea34d';x.beginPath();x.moveTo(p.l,Y(v));x.lineTo(W-p.r,Y(v));x.stroke();x.fillStyle='#64748b';x.fillText(v,p.l-5,Y(v)+3)}
+ if(base){[[base,'#10b981',[4,4]],[base+M.off,'#f59e0b',[4,4]],[base+M.on,'#ef4444',[6,4]]].forEach(([v,col,ds])=>{x.strokeStyle=col;x.setLineDash(ds);x.beginPath();x.moveTo(p.l,Y(v));x.lineTo(W-p.r,Y(v));x.stroke()})}
+ x.setLineDash([]);x.lineWidth=2.4;x.strokeStyle='#38bdf8';x.beginPath();
+ chart.r.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v)));x.stroke();
+}
+addEventListener('resize',()=>{size();draw()});
 
-  // Hero Card
-  const elHeroCard = document.getElementById('heroCard');
-  const elVerdictPill = document.getElementById('verdictPill');
-  const elLastPollTag = document.getElementById('lastPollTag');
-  const elVerdictHeadline = document.getElementById('verdictHeadline');
-  const elVerdictSubtitle = document.getElementById('verdictSubtitle');
-  const elDrunkAnswerText = document.getElementById('drunkAnswerText');
-  const elBacEstimateText = document.getElementById('bacEstimateText');
-  const elIgnitionAnswerText = document.getElementById('ignitionAnswerText');
-  const elRelayBadge = document.getElementById('relayBadge');
-  const elLedGreen = document.getElementById('ledGreen');
-  const elLedRed = document.getElementById('ledRed');
-  const elCountdownBox = document.getElementById('countdownBox');
-  const elCountdownText = document.getElementById('countdownText');
+/* ---------- telemetry ---------- */
+function onTelemetry(d){
+ const ts=new Date().toLocaleTimeString();
+ if(d.margin_on){M.on=d.margin_on;M.off=d.margin_off}
+ syncMargins();lastT=d;
+ const code=(d.fault===true||d.code==='FAULT'||/FAULT/i.test(d.state))?'FAULT':d.code||(/WARM/i.test(d.state)?'WARMUP':d.is_drunk?'DRUNK':'SOBER');
+ const v=V[code]||V.FAULT,warm=code==='WARMUP';
+ const valid=!warm&&d.baseline>0;
+ const diff=valid?(d.diff??d.reading-d.baseline):0;
+ const bac=valid?Math.max(0,d.est_bac!==undefined?+d.est_bac:diff/M.on*LIMIT):0;
+ const drunk=code==='DRUNK';
 
-  // Scale & Gauge
-  const elScalePointer = document.getElementById('scalePointer');
-  const elPointerText = document.getElementById('pointerText');
-  const elScaleZoneLabel = document.getElementById('scaleZoneLabel');
-  const elGaugeFill = document.getElementById('gaugeFillPath');
-  const elGaugeVal = document.getElementById('gaugeVal');
-  const elReadingDiffLabel = document.getElementById('readingDiffLabel');
-  const elHeadroomText = document.getElementById('headroomText');
+ $('dot').className='dot '+(demo?'demo':'on');
+ $('conn').textContent=demo?'Demo simulating':'USB online';
+ $('vPoll').textContent='Updated '+ts;
+ $('sR').textContent=d.reading;$('sB').textContent=d.baseline>0?d.baseline:'warming…';$('sW').textContent=d.raw??d.reading;
+ gauge(diff,bac);
+ $('oBac').textContent=bac.toFixed(3)+'%';
 
-  // Stats
-  const elStatReading = document.getElementById('statReading');
-  const elStatBaseline = document.getElementById('statBaseline');
-  const elStatRaw = document.getElementById('statRaw');
+ chart.r.push(d.reading);chart.b.push(d.baseline>0?d.baseline:0);
+ if(chart.r.length>MAXPTS){chart.r.shift();chart.b.shift()}
+ draw();
 
-  // Test Actions
-  const elBtnStartBreathTest = document.getElementById('btnStartBreathTest');
-  const elBtnCalibrateCleanAir = document.getElementById('btnCalibrateCleanAir');
-  const elTestModal = document.getElementById('testModal');
-  const elModalRingFill = document.getElementById('modalRingFill');
-  const elModalCountdownNum = document.getElementById('modalCountdownNum');
-  const elModalPeakReading = document.getElementById('modalPeakReading');
-  const elBtnCancelTest = document.getElementById('btnCancelTest');
+ if(sampling&&valid&&code!=='FAULT'&&diff>sPeak){
+  sPeak=diff;sReading=d.reading;$('mP').textContent=`${d.reading} counts (${(diff/M.on*LIMIT).toFixed(3)}% BAC)`;
+ }
 
-  // Trend & Log
-  const elTrendCanvas = document.getElementById('trendChart');
-  const elTripCounterTag = document.getElementById('tripCounterTag');
-  const elLogTableBody = document.getElementById('logTableBody');
-  const elBtnClearLog = document.getElementById('btnClearLog');
-  const elBtnExportLog = document.getElementById('btnExportLog');
+ // hero
+ const h=$('hero');h.className='hero '+v.cls;
+ $('vPill').textContent=v.pill;$('vH').textContent=v.h;$('vH').style.color=v.c;
+ $('oAns').textContent=v.ans;$('oAns').style.color=v.c;
+ $('oIgn').textContent=v.ign;$('oIgn').style.color=v.c;
+ $('relay').className='rb '+v.rc;$('relay').textContent=v.relay;
+ $('lG').className='led '+(v.g?'g':'');$('lR').className='led '+v.r;
+ const cd=$('cd');cd.style.display='none';
+ let sub;
+ if(code==='WARMUP'){
+  const s=d.warmup_sec||0;sub='MQ-3 heater is stabilising. Keep the sensor in clean air and do not blow into it yet.';
+  cd.style.display='block';$('cdT').textContent=`Warm-up: ${s}s remaining of ${WARM_TOTAL}s`;$('cdB').style.width=Math.max(0,Math.min(100,(1-s/WARM_TOTAL)*100))+'%';
+ }else if(code==='FAULT'){sub='ADC out of range (<20 or >4090). Check wiring and the 10k/10k divider on GPIO 34.'}
+ else if(drunk){
+  sub=`Reading is above the trip point (+${M.on} counts). Ignition relay is locked.`;
+  const hs=+d.hold_sec||0;
+  if(hs>0){cd.style.display='block';$('cdT').textContent=`Alcohol cleared — mandatory lockout hold: ${hs.toFixed(1)}s`;$('cdB').style.width=(100-hs/10*100)+'%'}
+  else if(diff>=M.off){cd.style.display='block';$('cdT').textContent=`Waiting for reading to fall below +${M.off} counts (now +${diff})`;$('cdB').style.width='0'}
+ }else sub=`Reading is below the trip point (+${M.on}). Ignition relay is energised.`;
+ $('vS').textContent=sub;
 
-  // Footer
-  const elLastUpdateSpan = document.getElementById('lastUpdateSpan');
-  const elFooterBaselineSpan = document.getElementById('footerBaselineSpan');
-  const elFooterInterlockSpan = document.getElementById('footerInterlockSpan');
+ const calOK=code==='SOBER';$('bCal').disabled=!calOK;
 
-  // --- Audio Alert Synthesizer ---
-  let audioCtx = null;
-  function playBeep(isDrunkAlert = false) {
-    if (!soundEnabled) return;
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+ if(code!==lastCode){
+  if(lastCode!==null)logEvent({ts:new Date().toISOString(),status:code,bac,reading:d.reading,baseline:d.baseline,on:M.on,off:M.off,ign:code==='SOBER',src:'Auto'});
+  if(code==='DRUNK')beep(true);else if(code==='SOBER'&&lastCode!==null)beep(false);
+  lastCode=code;
+ }
+}
 
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      if (isDrunkAlert) {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.45);
-        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.45);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.46);
-      } else {
-        // Sober / Success chime
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.12); // A5
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.36);
-      }
-    } catch (e) {}
+/* ---------- breath sample ---------- */
+$('bTest').onclick=()=>{
+ if(!(connected||demo))return addMsg('dashboard','Connect the device or start Demo Mode first.',true);
+ if(lastCode!=='SOBER'&&lastCode!=='DRUNK')return addMsg('dashboard','Sampling needs live data after warm-up (no warm-up/fault state).',true);
+ sampling=true;sPeak=0;sReading=0;sLeft=5;
+ $('mT').textContent='SAMPLING — BLOW STEADILY';$('mI').textContent='Blow continuously into the MQ-3 sensor.';
+ $('mN').textContent='5';$('rf').style.strokeDashoffset='0';$('mP').textContent='Sampling…';$('mC').textContent='Cancel';$('modal').style.display='flex';
+ sTimer=setInterval(()=>{
+  sLeft--;$('mN').textContent=Math.max(0,sLeft);$('rf').style.strokeDashoffset=((5-sLeft)/5*440);
+  if(sLeft<=0)finishSample();
+ },1000);
+};
+function finishSample(){
+ clearInterval(sTimer);sampling=false;
+ const bac=sPeak/M.on*LIMIT,bad=sPeak>=M.on;
+ logEvent({ts:new Date().toISOString(),status:bad?'DRUNK':'SOBER',bac,reading:sReading||(lastT?lastT.reading:0),baseline:lastT?lastT.baseline:0,on:M.on,off:M.off,ign:!bad,src:'Sample'});
+ $('mT').textContent=bad?'🚨 FAILED — DRUNK':'✅ PASSED — SOBER';
+ $('mT').style.color=bad?'var(--bad)':'var(--ok)';
+ $('mI').textContent=`Peak +${sPeak} counts · ${bac.toFixed(3)}% est. BAC · trip at +${M.on}. Ignition ${bad?'LOCKED':'PERMITTED'}.`;
+ $('mC').textContent='Close';beep(bad);
+}
+$('mC').onclick=()=>{clearInterval(sTimer);sampling=false;$('modal').style.display='none';$('mT').style.color=''};
+
+/* ---------- Web Serial ---------- */
+const hasSerial='serial' in navigator;
+if(!hasSerial){$('compat').style.display='block';$('bConn').disabled=true}
+async function send(cmd){
+ if(!port||!port.writable)return;
+ try{const w=port.writable.getWriter();await w.write(new TextEncoder().encode(cmd+'\n'));w.releaseLock()}catch(e){}
+}
+async function connect(){
+ if(connected)return disconnect();
+ try{
+  if(demo)toggleDemo();
+  port=await navigator.serial.requestPort();await port.open({baudRate:BAUD});
+  connected=true;lastCode=null;chart={r:[],b:[]};
+  $('bConn').textContent='Disconnect USB';$('bConn').className='btn dng';
+  $('dot').className='dot on';$('conn').textContent='Connected (115200)';
+  $('vH').textContent='WAITING FOR TELEMETRY…';
+  addMsg('dashboard','Port opened. Many ESP32 boards reset when the port opens, which restarts the 120 s warm-up.');
+  navigator.serial.addEventListener('disconnect',disconnect);
+  readLoop();
+ }catch(e){console.error(e)}
+}
+async function disconnect(){
+ try{
+  if(reader){await reader.cancel();reader.releaseLock();reader=null}
+  if(closed){await closed.catch(()=>{});closed=null}
+  if(port){await port.close();port=null}
+ }catch(e){}
+ connected=false;lastCode=null;
+ $('bConn').textContent='Connect USB';$('bConn').className='btn pri';
+ $('dot').className='dot';$('conn').textContent='USB disconnected';
+}
+async function readLoop(){
+ const dec=new TextDecoderStream();closed=port.readable.pipeTo(dec.writable);reader=dec.readable.getReader();
+ let buf='';
+ try{
+  for(;;){
+   const {value,done}=await reader.read();if(done)break;
+   buf+=value;const lines=buf.split(/\r?\n/);buf=lines.pop();
+   for(const l of lines){
+    const s=l.trim();if(s[0]!=='{'||s[s.length-1]!=='}')continue;
+    try{const d=JSON.parse(s);(d.state!==undefined&&d.reading!==undefined)?onTelemetry(d):deviceMsg(d)}catch(e){}
+   }
   }
-
-  // --- Browser Compatibility ---
-  const hasWebSerial = ('serial' in navigator);
-  if (!hasWebSerial) {
-    elBrowserAlert.style.display = 'flex';
-    elBtnConnectSerial.disabled = true;
-  }
-
-  // --- Theme Management ---
-  function initTheme() {
-    const saved = localStorage.getItem(STORAGE_KEY_THEME);
-    if (saved) {
-      document.documentElement.setAttribute('data-theme', saved);
-      elThemeIcon.textContent = saved === 'light' ? '☀️' : '🌙';
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-      elThemeIcon.textContent = prefersDark ? '🌙' : '☀️';
-    }
-  }
-  initTheme();
-
-  elBtnThemeToggle.addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem(STORAGE_KEY_THEME, next);
-    elThemeIcon.textContent = next === 'light' ? '☀️' : '🌙';
-    drawTrendChart();
-  });
-
-  // --- Sound Toggle ---
-  function updateSoundUI() {
-    elSoundIcon.textContent = soundEnabled ? '🔊' : '🔇';
-    localStorage.setItem(STORAGE_KEY_SOUND, soundEnabled);
-  }
-  updateSoundUI();
-  elBtnSoundToggle.addEventListener('click', () => {
-    soundEnabled = !soundEnabled;
-    updateSoundUI();
-  });
-
-  // --- Real-Time Trend Canvas ---
-  function initChart() {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = elTrendCanvas.getBoundingClientRect();
-    elTrendCanvas.width = rect.width * dpr;
-    elTrendCanvas.height = rect.height * dpr;
-  }
-  window.addEventListener('resize', () => {
-    initChart();
-    drawTrendChart();
-  });
-
-  function drawTrendChart() {
-    const ctx = elTrendCanvas.getContext('2d');
-    const width = elTrendCanvas.width;
-    const height = elTrendCanvas.height;
-    ctx.clearRect(0, 0, width, height);
-
-    if (chartData.readings.length === 0) {
-      ctx.fillStyle = '#64748b';
-      ctx.font = '14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Awaiting live breath readings...', width / 2, height / 2);
-      return;
-    }
-
-    const padding = { top: 20, right: 30, bottom: 25, left: 45 };
-    const plotW = width - padding.left - padding.right;
-    const plotH = height - padding.top - padding.bottom;
-
-    const base = chartData.baselines[chartData.baselines.length - 1] || 800;
-    const minVal = Math.max(0, base - 150);
-    const maxVal = Math.max(base + 600, ...chartData.readings) + 50;
-
-    const getY = (val) => padding.top + plotH - ((val - minVal) / (maxVal - minVal)) * plotH;
-    const getX = (idx, total) => padding.left + (idx / Math.max(1, total - 1)) * plotW;
-
-    // Grid lines
-    ctx.strokeStyle = '#263345';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([]);
-    const step = 200;
-    for (let v = Math.ceil(minVal / step) * step; v <= maxVal; v += step) {
-      const y = getY(v);
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(width - padding.right, y);
-      ctx.stroke();
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '10px sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(v.toString(), padding.left - 6, y + 3);
-    }
-
-    // Baseline (Green Dashed)
-    const yBase = getY(base);
-    ctx.strokeStyle = '#10b981';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, yBase);
-    ctx.lineTo(width - padding.right, yBase);
-    ctx.stroke();
-
-    // Reset margin line (Amber Dashed)
-    const yReset = getY(base + MARGIN_OFF);
-    ctx.strokeStyle = '#f59e0b';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, yReset);
-    ctx.lineTo(width - padding.right, yReset);
-    ctx.stroke();
-
-    // Drunk Trip Threshold (Red Dashed)
-    const yTrip = getY(base + MARGIN_ON);
-    ctx.strokeStyle = '#ef4444';
-    ctx.setLineDash([6, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, yTrip);
-    ctx.lineTo(width - padding.right, yTrip);
-    ctx.stroke();
-
-    // Reading Line (Cyan Solid)
-    ctx.setLineDash([]);
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = '#38bdf8';
-    ctx.beginPath();
-    for (let i = 0; i < chartData.readings.length; i++) {
-      const x = getX(i, chartData.readings.length);
-      const y = getY(chartData.readings[i]);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-
-    // Area fill
-    ctx.lineTo(getX(chartData.readings.length - 1, chartData.readings.length), getY(minVal));
-    ctx.lineTo(getX(0, chartData.readings.length), getY(minVal));
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
-    ctx.fill();
-  }
-
-  // --- Gauge & Intoxication Scale Updaters ---
-  const GAUGE_ARC_LENGTH = 251.3;
-  function updateGauge(diff, estBac) {
-    const clampedDiff = Math.max(0, Math.min(diff, 600));
-    const fraction = clampedDiff / 600;
-    const offset = GAUGE_ARC_LENGTH - (fraction * GAUGE_ARC_LENGTH);
-    elGaugeFill.style.strokeDashoffset = offset;
-
-    if (diff > MARGIN_ON) {
-      elGaugeFill.style.stroke = 'var(--color-drunk)';
-    } else if (diff > MARGIN_OFF) {
-      elGaugeFill.style.stroke = 'var(--color-caution)';
-    } else {
-      elGaugeFill.style.stroke = 'var(--color-sober)';
-    }
-
-    elGaugeVal.textContent = diff > 0 ? `+${diff}` : `${diff}`;
-    elReadingDiffLabel.textContent = diff > 0 ? `+${diff} counts` : `${diff} counts`;
-
-    if (diff >= MARGIN_ON) {
-      const over = diff - MARGIN_ON;
-      elHeadroomText.textContent = `⚠️ Over threshold by +${over} counts (DRUNK / INTOXICATED)`;
-      elHeadroomText.style.color = 'var(--color-drunk)';
-    } else {
-      const margin = MARGIN_ON - diff;
-      elHeadroomText.textContent = `Safety margin: ${margin} counts until legal drunk threshold (+400)`;
-      elHeadroomText.style.color = 'var(--text-secondary)';
-    }
-
-    // Update horizontal spectrum pointer
-    // 0.00% is 0%, 0.08% is 60%, 0.15% is 95%
-    const scalePercent = Math.min(100, Math.max(0, (estBac / 0.14) * 100));
-    elScalePointer.style.left = `${scalePercent}%`;
-    elPointerText.textContent = `${estBac.toFixed(3)}% BAC`;
-
-    if (estBac >= 0.080) {
-      elScaleZoneLabel.textContent = `Zone: Intoxicated / Drunk (${estBac.toFixed(3)}% BAC)`;
-      elScaleZoneLabel.style.color = 'var(--color-drunk)';
-    } else if (estBac >= 0.045) {
-      elScaleZoneLabel.textContent = `Zone: Impaired / Caution (${estBac.toFixed(3)}% BAC)`;
-      elScaleZoneLabel.style.color = 'var(--color-caution)';
-    } else if (estBac >= 0.015) {
-      elScaleZoneLabel.textContent = `Zone: Trace Alcohol (${estBac.toFixed(3)}% BAC)`;
-      elScaleZoneLabel.style.color = '#84cc16';
-    } else {
-      elScaleZoneLabel.textContent = `Zone: Clean Air / Sober (0.000% BAC)`;
-      elScaleZoneLabel.style.color = 'var(--color-sober)';
-    }
-  }
-
-  // --- Sobriety Log Management ---
-  function loadStoredLogs() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY_LOGS);
-      if (data) eventLogs = JSON.parse(data);
-    } catch (e) {
-      eventLogs = [];
-    }
-    calculateDrunkCount();
-    renderLogsTable();
-  }
-
-  function saveLogs() {
-    try {
-      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(eventLogs.slice(0, 100)));
-    } catch (e) {}
-  }
-
-  function calculateDrunkCount() {
-    const todayStr = new Date().toDateString();
-    drunkCountToday = eventLogs.filter(item => {
-      const itemDate = new Date(item.timestamp).toDateString();
-      return itemDate === todayStr && item.is_drunk;
-    }).length;
-    elTripCounterTag.textContent = `${drunkCountToday} Drunk Incidents Today`;
-  }
-
-  function logSobrietyEvent(entry) {
-    eventLogs.unshift(entry);
-    calculateDrunkCount();
-    saveLogs();
-    renderLogsTable();
-  }
-
-  function renderLogsTable() {
-    elLogTableBody.innerHTML = '';
-    if (eventLogs.length === 0) {
-      elLogTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">No breath samples recorded yet.</td></tr>`;
-      return;
-    }
-
-    eventLogs.slice(0, 50).forEach(entry => {
-      const tr = document.createElement('tr');
-      const timeStr = new Date(entry.timestamp).toLocaleTimeString();
-      const badgeClass = entry.is_drunk ? 'badge-drunk' : 'badge-sober';
-      const verdictLabel = entry.is_drunk ? 'DRUNK / FAIL' : 'SOBER / PASS';
-
-      tr.innerHTML = `
-        <td>${timeStr}</td>
-        <td><span class="log-badge ${badgeClass}">${verdictLabel}</span></td>
-        <td style="font-weight:700;">${entry.est_bac.toFixed(3)}%</td>
-        <td>${entry.reading}</td>
-        <td>${entry.ignition ? '<span style="color:#4ade80; font-weight:700;">ALLOWED</span>' : '<span style="color:#f87171; font-weight:700;">LOCKED</span>'}</td>
-      `;
-      elLogTableBody.appendChild(tr);
-    });
-  }
-
-  elBtnClearLog.addEventListener('click', () => {
-    if (confirm('Clear sobriety audit log?')) {
-      eventLogs = [];
-      saveLogs();
-      calculateDrunkCount();
-      renderLogsTable();
-    }
-  });
-
-  elBtnExportLog.addEventListener('click', () => {
-    if (eventLogs.length === 0) {
-      alert('Log is empty.');
-      return;
-    }
-    let csv = 'Timestamp,SobrietyStatus,EstBAC,ReadingADC,BaselineADC,IgnitionAllowed\n';
-    eventLogs.forEach(e => {
-      csv += `"${e.timestamp}","${e.is_drunk ? 'DRUNK' : 'SOBER'}",${e.est_bac.toFixed(3)},${e.reading},${e.baseline},${e.ignition}\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sobriety_audit_log_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  // --- Primary Telemetry Consumer (Updates Drunk Overview) ---
-  function handleTelemetry(data) {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString();
-
-    // 1. Connection indicators
-    elStatusDot.className = 'status-dot online';
-    elConnStatusText.textContent = isDemoMode ? 'Demo Simulating' : 'USB Online (115200)';
-    elLastPollTag.textContent = `Updated: ${timeStr}`;
-    elLastUpdateSpan.textContent = timeStr;
-    elFooterBaselineSpan.textContent = data.baseline > 0 ? `${data.baseline} counts` : 'Calibrating';
-
-    // 2. Metrics & Estimated BAC calculation
-    const diff = data.diff !== undefined ? data.diff : (data.reading - data.baseline);
-    let estBac = 0.0;
-    if (data.est_bac !== undefined) {
-      estBac = parseFloat(data.est_bac);
-    } else if (diff > 0) {
-      estBac = (diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
-    }
-    estBac = Math.max(0, estBac);
-
-    // Update gauge & scale
-    updateGauge(diff, estBac);
-    elStatReading.textContent = data.reading;
-    elStatBaseline.textContent = data.baseline;
-    elStatRaw.textContent = data.raw !== undefined ? data.raw : data.reading;
-    elBacEstimateText.textContent = `${estBac.toFixed(3)}%`;
-
-    // 3. Update Chart
-    chartData.timestamps.push(timeStr);
-    chartData.readings.push(data.reading);
-    chartData.baselines.push(data.baseline);
-    if (chartData.readings.length > CHART_MAX_POINTS) {
-      chartData.timestamps.shift();
-      chartData.readings.shift();
-      chartData.baselines.shift();
-    }
-    drawTrendChart();
-
-    // Track active breath sampling peak
-    if (isSamplingActive) {
-      if (diff > samplePeakDiff) {
-        samplePeakDiff = diff;
-        samplePeakReading = data.reading;
-        const peakBac = (samplePeakDiff / MARGIN_ON) * BAC_LEGAL_LIMIT;
-        elModalPeakReading.textContent = `${samplePeakReading} counts (${peakBac.toFixed(3)}% BAC)`;
-      }
-    }
-
-    // 4. Hero Decision Banner: Is the person drunk or not?
-    const stateStr = (data.state || '').toUpperCase();
-    const isDrunk = data.is_drunk !== undefined ? !!data.is_drunk : (stateStr.includes('ALCOHOL') || stateStr.includes('DRUNK'));
-    const isWarming = stateStr.includes('WARM');
-    const isFault = stateStr.includes('FAULT');
-    const ignitionAllowed = !!data.ignition_allowed;
-
-    elHeroCard.className = 'hero-verdict-card';
-    elCountdownBox.style.display = 'none';
-
-    if (isFault) {
-      elHeroCard.classList.add('state-fault');
-      elVerdictPill.textContent = 'SENSOR FAULT';
-      elVerdictHeadline.textContent = 'HARDWARE FAULT — TEST INVALID';
-      elVerdictHeadline.style.color = '#f87171';
-      elVerdictSubtitle.textContent = 'ADC rail out of bounds (<20 or >4090). Check sensor wiring and voltage divider.';
-      elDrunkAnswerText.textContent = 'ERROR';
-      elDrunkAnswerText.style.color = '#f87171';
-      elIgnitionAnswerText.textContent = 'BLOCKED';
-      elIgnitionAnswerText.style.color = '#f87171';
-
-      elRelayBadge.className = 'relay-badge blocked';
-      elRelayBadge.textContent = 'LOCKED (FAULT)';
-      elLedGreen.className = 'hw-led';
-      elLedRed.className = 'hw-led red-on';
-      elFooterInterlockSpan.textContent = 'FAULT (INTERLOCKED)';
-      elFooterInterlockSpan.style.color = '#f87171';
-
-    } else if (isWarming) {
-      elHeroCard.classList.add('state-warmup');
-      elVerdictPill.textContent = 'PREHEATING SENSOR';
-      elVerdictHeadline.textContent = 'SENSOR WARMING UP...';
-      elVerdictHeadline.style.color = 'var(--color-caution)';
-      elVerdictSubtitle.textContent = 'MQ-3 sensor is preheating clean-air baseline. Please do not blow into sensor yet.';
-      elDrunkAnswerText.textContent = 'WAIT';
-      elDrunkAnswerText.style.color = 'var(--color-caution)';
-      elIgnitionAnswerText.textContent = 'LOCKED';
-      elIgnitionAnswerText.style.color = 'var(--color-caution)';
-
-      elRelayBadge.className = 'relay-badge blocked';
-      elRelayBadge.textContent = 'LOCKED (WARMUP)';
-      elLedGreen.className = 'hw-led';
-      elLedRed.className = 'hw-led red-on';
-      elFooterInterlockSpan.textContent = 'PREHEATING';
-      elFooterInterlockSpan.style.color = 'var(--color-caution)';
-
-      if (data.warmup_sec && data.warmup_sec > 0) {
-        elCountdownBox.style.display = 'block';
-        elCountdownText.textContent = `Warmup in progress: ${data.warmup_sec}s remaining (keep in clean ambient air)`;
-      }
-
-    } else if (isDrunk) {
-      // PERSON IS DRUNK
-      elHeroCard.classList.add('state-drunk');
-      elVerdictPill.textContent = 'INTOXICATION CONFIRMED';
-      elVerdictHeadline.textContent = 'PERSON IS DRUNK — DO NOT DRIVE';
-      elVerdictHeadline.style.color = 'var(--color-drunk)';
-      elVerdictSubtitle.textContent = `Alcohol level exceeds the legal limit of ${BAC_LEGAL_LIMIT.toFixed(2)}% BAC. Starter interlock is locked.`;
-      elDrunkAnswerText.textContent = 'YES (DRUNK)';
-      elDrunkAnswerText.style.color = 'var(--color-drunk)';
-      elIgnitionAnswerText.textContent = 'LOCKED';
-      elIgnitionAnswerText.style.color = 'var(--color-drunk)';
-
-      elRelayBadge.className = 'relay-badge blocked';
-      elRelayBadge.textContent = 'LOCKED (INTERLOCK ACTIVE)';
-      elLedGreen.className = 'hw-led';
-      elLedRed.className = 'hw-led red-on';
-      elFooterInterlockSpan.textContent = 'IGNITION BLOCKED (DRUNK)';
-      elFooterInterlockSpan.style.color = 'var(--color-drunk)';
-
-      if (data.hold_sec && data.hold_sec > 0) {
-        elCountdownBox.style.display = 'block';
-        elCountdownText.textContent = `Alcohol clearing: Lockout hold active for ${data.hold_sec}s`;
-      }
-
-    } else {
-      // PERSON IS SOBER
-      elHeroCard.classList.add('state-sober');
-      elVerdictPill.textContent = 'SOBRIETY VERIFIED';
-      elVerdictHeadline.textContent = 'PERSON IS SOBER — FIT TO DRIVE';
-      elVerdictHeadline.style.color = 'var(--color-sober)';
-      elVerdictSubtitle.textContent = 'Clean air confirmed. Alcohol is well below safety threshold. Vehicle ignition permitted.';
-      elDrunkAnswerText.textContent = 'NO (SOBER)';
-      elDrunkAnswerText.style.color = 'var(--color-sober)';
-      elIgnitionAnswerText.textContent = 'ALLOWED';
-      elIgnitionAnswerText.style.color = 'var(--color-sober)';
-
-      elRelayBadge.className = 'relay-badge allowed';
-      elRelayBadge.textContent = 'PERMITTED (ENABLED)';
-      elLedGreen.className = 'hw-led green-on';
-      elLedRed.className = 'hw-led';
-      elFooterInterlockSpan.textContent = 'IGNITION ENABLED (SAFE)';
-      elFooterInterlockSpan.style.color = 'var(--color-sober)';
-    }
-
-    // State transition logging
-    if (stateStr !== lastRecordedState) {
-      if (lastRecordedState !== null) {
-        logSobrietyEvent({
-          timestamp: new Date().toISOString(),
-          is_drunk: isDrunk,
-          est_bac: estBac,
-          reading: data.reading,
-          baseline: data.baseline,
-          ignition: ignitionAllowed
-        });
-      }
-      lastRecordedState = stateStr;
-      if (isDrunk) playBeep(true);
-      else if (stateStr.includes('SOBER')) playBeep(false);
-    }
-  }
-
-  // --- Interactive Breath Sample Collection Routine ---
-  const RING_CIRCUMFERENCE = 440; // 2 * PI * 70
-  function startBreathTestRoutine() {
-    isSamplingActive = true;
-    samplePeakDiff = 0;
-    samplePeakReading = 0;
-    samplingRemainingSec = 5;
-
-    elTestModal.style.display = 'flex';
-    elModalCountdownNum.textContent = '5';
-    elModalRingFill.style.strokeDashoffset = '0';
-    elModalPeakReading.textContent = 'Sampling...';
-
-    // 5-second countdown timer
-    samplingTimer = setInterval(() => {
-      samplingRemainingSec--;
-      elModalCountdownNum.textContent = samplingRemainingSec.toString();
-
-      // Update ring fill
-      const progress = (5 - samplingRemainingSec) / 5;
-      elModalRingFill.style.strokeDashoffset = (progress * RING_CIRCUMFERENCE).toString();
-
-      if (samplingRemainingSec <= 0) {
-        finishBreathTestRoutine();
-      }
-    }, 1000);
-  }
-
-  function finishBreathTestRoutine() {
-    clearInterval(samplingTimer);
-    isSamplingActive = false;
-    elTestModal.style.display = 'none';
-
-    const peakBac = (samplePeakDiff / MARGIN_ON) * BAC_LEGAL_LIMIT;
-    const isPersonDrunk = samplePeakDiff >= MARGIN_ON;
-
-    // Log official breath test to history
-    logSobrietyEvent({
-      timestamp: new Date().toISOString(),
-      is_drunk: isPersonDrunk,
-      est_bac: peakBac,
-      reading: samplePeakReading,
-      baseline: parseInt(elStatBaseline.textContent) || 800,
-      ignition: !isPersonDrunk
-    });
-
-    if (isPersonDrunk) {
-      playBeep(true);
-      alert(`🚨 BREATH TEST RESULT: FAILED (PERSON IS DRUNK)\nPeak BAC: ${peakBac.toFixed(3)}% (Exceeds ${BAC_LEGAL_LIMIT.toFixed(2)}% limit)\nVehicle Ignition: LOCKED`);
-    } else {
-      playBeep(false);
-      alert(`✅ BREATH TEST RESULT: PASSED (PERSON IS SOBER)\nPeak BAC: ${peakBac.toFixed(3)}%\nVehicle Ignition: PERMITTED`);
-    }
-  }
-
-  elBtnStartBreathTest.addEventListener('click', startBreathTestRoutine);
-  elBtnCancelTest.addEventListener('click', () => {
-    clearInterval(samplingTimer);
-    isSamplingActive = false;
-    elTestModal.style.display = 'none';
-  });
-
-  // --- Web Serial API Connection ---
-  async function connectSerial() {
-    if (!hasWebSerial) {
-      alert('Your browser does not support the Web Serial API. Please use Google Chrome or Microsoft Edge.');
-      return;
-    }
-
-    try {
-      if (isConnected && serialPort) {
-        await disconnectSerial();
-        return;
-      }
-
-      serialPort = await navigator.serial.requestPort();
-      await serialPort.open({ baudRate: BAUD_RATE });
-
-      isConnected = true;
-      elBtnConnectSerial.textContent = 'Disconnect USB';
-      elBtnConnectSerial.classList.replace('btn-primary', 'btn-danger');
-      elStatusDot.className = 'status-dot online';
-      elConnStatusText.textContent = 'Connected (115200)';
-
-      navigator.serial.addEventListener('disconnect', onPortDisconnected);
-      readSerialLoop();
-
-    } catch (err) {
-      console.error('Serial connection error:', err);
-    }
-  }
-
-  async function disconnectSerial() {
-    try {
-      if (serialReader) {
-        await serialReader.cancel();
-        serialReader.releaseLock();
-        serialReader = null;
-      }
-      if (readableStreamClosed) {
-        await readableStreamClosed.catch(() => {});
-        readableStreamClosed = null;
-      }
-      if (serialPort) {
-        await serialPort.close();
-        serialPort = null;
-      }
-    } catch (err) {
-    } finally {
-      isConnected = false;
-      elBtnConnectSerial.textContent = 'Connect USB';
-      elBtnConnectSerial.classList.replace('btn-danger', 'btn-primary');
-      elStatusDot.className = 'status-dot';
-      elConnStatusText.textContent = 'USB Disconnected';
-    }
-  }
-
-  function onPortDisconnected() {
-    disconnectSerial();
-  }
-
-  async function readSerialLoop() {
-    const textDecoder = new TextDecoderStream();
-    readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
-    serialReader = textDecoder.readable.getReader();
-    let lineBuffer = '';
-
-    try {
-      while (true) {
-        const { value, done } = await serialReader.read();
-        if (done) break;
-        if (value) {
-          lineBuffer += value;
-          const lines = lineBuffer.split(/\r?\n/);
-          lineBuffer = lines.pop();
-
-          for (const rawLine of lines) {
-            const line = rawLine.trim();
-            if (!line) continue;
-            if (line.startsWith('{') && line.endsWith('}')) {
-              try {
-                const data = JSON.parse(line);
-                if (data.state !== undefined && data.reading !== undefined) {
-                  handleTelemetry(data);
-                }
-              } catch (parseErr) {}
-            }
-          }
-        }
-      }
-    } catch (err) {
-    } finally {
-      if (serialReader) serialReader.releaseLock();
-    }
-  }
-
-  async function sendSerialCommand(cmd) {
-    if (!serialPort || !serialPort.writable) return;
-    try {
-      const encoder = new TextEncoder();
-      const writer = serialPort.writable.getWriter();
-      await writer.write(encoder.encode(cmd + '\n'));
-      writer.releaseLock();
-    } catch (err) {}
-  }
-
-  elBtnConnectSerial.addEventListener('click', connectSerial);
-  elBtnCalibrateCleanAir.addEventListener('click', () => {
-    if (isDemoMode) {
-      demoBaseline = demoReading;
-      handleTelemetry({
-        state: "SOBER - ignition allowed",
-        reading: demoBaseline,
-        baseline: demoBaseline,
-        diff: 0,
-        is_drunk: false,
-        est_bac: 0.000,
-        ignition_allowed: true
-      });
-    } else {
-      sendSerialCommand('CAL');
-    }
-  });
-
-  // --- Demo Simulation Mode ---
-  let demoStateIndex = 0;
-  let demoReading = 790;
-  let demoBaseline = 780;
-  let demoHold = 10.0;
-  let demoWarmup = 30;
-
-  function runDemoStep() {
-    const states = ['WARMUP', 'SOBER', 'DRUNK', 'HOLD', 'FAULT'];
-    const currentSim = states[demoStateIndex];
-
-    let tel = {
-      state: "SOBER - ignition allowed",
-      reading: 785,
-      baseline: demoBaseline,
-      diff: 5,
-      raw: 782,
-      is_drunk: false,
-      est_bac: 0.000,
-      ignition_allowed: true,
-      warmup_sec: 0,
-      hold_sec: 0.0
-    };
-
-    if (currentSim === 'WARMUP') {
-      tel.state = "WARMING UP";
-      tel.ignition_allowed = false;
-      tel.warmup_sec = demoWarmup;
-      demoWarmup -= 2;
-      if (demoWarmup <= 0) {
-        demoWarmup = 30;
-        demoStateIndex = 1; // transition to sober
-      }
-    } else if (currentSim === 'SOBER') {
-      demoReading = demoBaseline + Math.floor(Math.random() * 45);
-      tel.state = "SOBER - ignition allowed";
-      tel.reading = demoReading;
-      tel.diff = demoReading - demoBaseline;
-      tel.is_drunk = false;
-      tel.est_bac = (tel.diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
-      tel.ignition_allowed = true;
-    } else if (currentSim === 'DRUNK') {
-      demoReading = demoBaseline + 520 + Math.floor(Math.random() * 50);
-      tel.state = "DRUNK / INTOXICATED - ignition blocked";
-      tel.reading = demoReading;
-      tel.diff = demoReading - demoBaseline;
-      tel.is_drunk = true;
-      tel.est_bac = (tel.diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
-      tel.ignition_allowed = false;
-    } else if (currentSim === 'HOLD') {
-      demoReading = demoBaseline + 140; // cleared below hysteresis
-      tel.state = "DRUNK / INTOXICATED - ignition blocked";
-      tel.reading = demoReading;
-      tel.diff = demoReading - demoBaseline;
-      tel.is_drunk = true;
-      tel.est_bac = (tel.diff / MARGIN_ON) * BAC_LEGAL_LIMIT;
-      tel.ignition_allowed = false;
-      tel.hold_sec = Math.max(0, demoHold).toFixed(1);
-      demoHold -= 1.0;
-      if (demoHold <= 0) {
-        demoHold = 10.0;
-        demoStateIndex = 1;
-      }
-    } else if (currentSim === 'FAULT') {
-      tel.state = "SENSOR FAULT - ignition blocked";
-      tel.reading = 4095;
-      tel.raw = 4095;
-      tel.is_drunk = false;
-      tel.ignition_allowed = false;
-    }
-
-    handleTelemetry(tel);
-  }
-
-  elBtnDemoToggle.addEventListener('click', () => {
-    isDemoMode = !isDemoMode;
-    if (isDemoMode) {
-      if (isConnected) disconnectSerial();
-      elBtnDemoToggle.classList.replace('btn-outline', 'btn-primary');
-      elBtnDemoToggle.textContent = 'Exit Demo';
-      elStatusDot.className = 'status-dot demo';
-      elConnStatusText.textContent = 'Demo Mode Active';
-      demoStateIndex = 1; // start in sober
-      demoInterval = setInterval(runDemoStep, 1000);
-      runDemoStep();
-    } else {
-      clearInterval(demoInterval);
-      demoInterval = null;
-      elBtnDemoToggle.classList.replace('btn-primary', 'btn-outline');
-      elBtnDemoToggle.textContent = 'Demo Mode';
-      elStatusDot.className = 'status-dot';
-      elConnStatusText.textContent = 'USB Offline';
-    }
-  });
-
-  elHeroCard.addEventListener('click', () => {
-    if (isDemoMode) {
-      demoStateIndex = (demoStateIndex + 1) % 5;
-      runDemoStep();
-    }
-  });
-
-  // Initial Boot
-  initChart();
-  loadStoredLogs();
-
+ }catch(e){}finally{try{reader&&reader.releaseLock()}catch(e){}}
+}
+$('bConn').onclick=connect;
+$('bCal').onclick=()=>{
+ if(demo){if(lastCode==='SOBER'){dBase=dRead;addMsg('demo','Clean-air baseline recalibrated')}}
+ else send('CAL');
+};
+$('bSelf').onclick=()=>demo?addMsg('demo','LED self-test (simulated)'):send('TEST');
+$('bSnd').onclick=()=>{sound=!sound;$('bSnd').textContent=sound?'🔊':'🔇'};
+
+/* ---------- demo (mirrors firmware telemetry) ---------- */
+let dI=1,dBase=780,dRead=790,dWarm=WARM_TOTAL,dHold=10;
+function demoStep(){
+ const c=['WARMUP','SOBER','DRUNK','HOLD','FAULT'][dI],rnd=n=>Math.floor(Math.random()*n);
+ const t={state:'SOBER - ignition allowed',code:'SOBER',is_drunk:false,est_bac:0,raw:0,reading:0,baseline:dBase,diff:0,margin_on:M.on,margin_off:M.off,ignition_allowed:true,warmup_sec:0,hold_sec:0,fault:false};
+ const set=r=>{dRead=r;t.reading=t.raw=r;t.diff=r-t.baseline;t.est_bac=Math.max(0,t.diff/M.on*LIMIT)};
+ const drunkT=()=>{t.state='DRUNK / INTOXICATED - ignition blocked';t.code='DRUNK';t.is_drunk=true;t.ignition_allowed=false};
+ if(c==='WARMUP'){t.state='WARMING UP';t.code='WARMUP';t.baseline=0;t.ignition_allowed=false;set(1000-(WARM_TOTAL-dWarm));t.warmup_sec=dWarm;dWarm-=6;if(dWarm<=0){dWarm=WARM_TOTAL;dI=1}}
+ else if(c==='SOBER')set(dBase+rnd(45));
+ else if(c==='DRUNK'){set(dBase+M.on+60+rnd(60));drunkT()}
+ else if(c==='HOLD'){set(dBase+Math.round(M.off/2));drunkT();t.hold_sec=Math.max(0,dHold).toFixed(1);dHold--;if(dHold<0){dHold=10;dI=1}}
+ else{t.state='SENSOR FAULT - ignition blocked';t.code='FAULT';t.fault=true;t.ignition_allowed=false;set(4095)}
+ onTelemetry(t);
+}
+function toggleDemo(){
+ demo=!demo;lastCode=null;chart={r:[],b:[]};
+ if(demo){
+  if(connected)disconnect();
+  $('bDemo').className='btn pri';$('bDemo').textContent='Exit Demo';dI=1;
+  demoTimer=setInterval(demoStep,1000);demoStep();
+  addMsg('demo','Click the status card to cycle: warm-up → sober → drunk → hold → fault');
+ }else{
+  clearInterval(demoTimer);$('bDemo').className='btn';$('bDemo').textContent='Demo Mode';
+  $('dot').className='dot';$('conn').textContent='USB Offline';
+ }
+}
+$('bDemo').onclick=toggleDemo;
+$('hero').onclick=()=>{if(demo){dI=(dI+1)%5;dWarm=WARM_TOTAL;dHold=10;demoStep()}};
+
+size();draw();loadLogs();syncMargins(true);
 })();
 </script>
 </body>
