@@ -1,6 +1,7 @@
 // ============================================================================
 // Alcohol Detection Ignition Lock - ESP32 + MQ-3
 // USB Telemetry Edition with Sobriety Assessment & Drunk Detection
+// Final: 120 s warm-up, tunable margins (MARGIN command), CAL only when SOBER
 //
 // Circuit Wiring:
 //   MQ-3 AO  ---> [10k] ---> GPIO 34 (ADC1_CH6) ---> [10k] ---> GND
@@ -22,15 +23,19 @@ const int PIN_RELAY = 14;   // Ignition interlock relay
 const bool RELAY_ACTIVE_LOW = false;
 
 // ---------- Interlock Calibration & Timing Settings ----------
-const unsigned long WARMUP_MS        = 30000; // 30s sensor preheat & stabilization
-const int           MARGIN_ON        = 400;   // Trip threshold: +400 counts above baseline => DRUNK (~0.08% BAC)
-const int           MARGIN_OFF       = 250;   // Reset threshold: +250 counts above baseline (hysteresis ~0.05% BAC)
+const unsigned long WARMUP_MS        = 120000; // 120s sensor preheat & stabilization (MQ-3 reads high and falls after power-on)
 const unsigned long HOLD_MS          = 10000; // 10s mandatory lockout hold after alcohol clears
 const int           ADC_MIN          = 20;    // Sensor disconnect or short to GND
 const int           ADC_MAX          = 4090;  // Sensor rail short or open divider
 const int           BASELINE_SAMPLES = 80;    // Clean-air baseline sample count
 const unsigned long FAULT_RECOVER_MS = 2000;  // Debounce time to recover from fault
 const unsigned long TELEMETRY_MS     = 250;   // Send JSON over USB every 250ms (4 updates/sec)
+
+// Trip / release margins in ADC counts above the clean-air baseline.
+// Tuned to the test source (sanitiser / alcohol swab); NOT calibrated against a reference breathalyser.
+// Change at run time with the serial command:  MARGIN <on> <off>   (resets to these defaults on reboot)
+int marginOn  = 1100;   // Trip threshold: rise above baseline => DRUNK
+int marginOff = 65;   // Release threshold (hysteresis); also needs the HOLD_MS lockout hold
 
 // ---------- State Machine ----------
 enum State { WARMUP, SOBER, ALCOHOL, FAULT };
@@ -115,11 +120,11 @@ void sendTelemetryJSON() {
   bool isDrunk = (state == ALCOHOL);
   bool ignitionAllowed = (state == SOBER);
 
-  // Approximate BAC % calculation based on MQ-3 calibration curve:
-  // Margin +400 counts calibrated to ~0.080% BAC (standard legal limit)
+  // Estimated BAC %: linear, uncalibrated indicator.
+  // The trip margin (marginOn counts) is mapped to 0.080%.
   float estBac = 0.0f;
   if (diff > 0) {
-    estBac = ((float)diff / (float)MARGIN_ON) * 0.080f;
+    estBac = ((float)diff / (float)marginOn) * 0.080f;
   }
   if (estBac < 0.0f) estBac = 0.0f;
 
@@ -134,7 +139,7 @@ void sendTelemetryJSON() {
 
   // Remaining lockout hold time in seconds
   float holdSec = 0.0;
-  if (state == ALCOHOL && diff < MARGIN_OFF) {
+  if (state == ALCOHOL && diff < marginOff) {
     unsigned long elapsedHold = now - lastHighTime;
     if (elapsedHold < HOLD_MS) {
       holdSec = (float)(HOLD_MS - elapsedHold) / 1000.0f;
@@ -159,9 +164,9 @@ void sendTelemetryJSON() {
   Serial.print(",\"diff\":");
   Serial.print(diff);
   Serial.print(",\"margin_on\":");
-  Serial.print(MARGIN_ON);
+  Serial.print(marginOn);
   Serial.print(",\"margin_off\":");
-  Serial.print(MARGIN_OFF);
+  Serial.print(marginOff);
   Serial.print(",\"ignition_allowed\":");
   Serial.print(ignitionAllowed ? "true" : "false");
   Serial.print(",\"warmup_sec\":");
@@ -179,11 +184,25 @@ void handleCommand(String cmd) {
   cmd.toUpperCase();
 
   if (cmd == "CAL" || cmd == "CALIBRATE") {
+    // Only allowed in a clean SOBER state, so it cannot be used to unlock while alcohol is present
+    if (state != SOBER) {
+      Serial.println("{\"warning\":\"CAL refused: only allowed in SOBER state\"}");
+      return;
+    }
     Serial.println("{\"action\":\"Recalibrating clean air reference...\"}");
     if (takeBaseline()) {
       state = SOBER;
     } else {
       state = FAULT;
+    }
+  } else if (cmd.startsWith("MARGIN")) {
+    int a = 0, b = 0;
+    if (sscanf(cmd.c_str(), "MARGIN %d %d", &a, &b) == 2 && a >= 20 && b >= 5 && b < a) {
+      marginOn = a;
+      marginOff = b;
+      Serial.printf("{\"action\":\"Margins updated\",\"margin_on\":%d,\"margin_off\":%d}\n", marginOn, marginOff);
+    } else {
+      Serial.println("{\"warning\":\"Usage: MARGIN <on> <off> with on >= 20 and 5 <= off < on\"}");
     }
   } else if (cmd == "TEST") {
     Serial.println("{\"action\":\"Self-test initiated...\"}");
@@ -227,7 +246,7 @@ void setup() {
 
   setRelay(false);                            // Fail-safe: start with ignition blocked
   analogReadResolution(12);                   // 12-bit ADC (0 - 4095)
-  analogSetPinAttenuation(PIN_MQ3, ADC_11db); // ~3.3V full scale
+  analogSetPinAttenuation(PIN_MQ3, ADC_6db); // ~3.3V full scale
 
   bootTime = millis();
   Serial.println("\n{\"status\":\"BOOT_COMPLETE\",\"device\":\"ESP32_ALCOHOL_LOCK\",\"baud\":115200}");
@@ -270,12 +289,12 @@ void loop() {
       int diff = smoothed - baseline;
 
       // Alcohol trip detection
-      if (diff > MARGIN_ON) {
+      if (diff > marginOn) {
         state = ALCOHOL;
         lastHighTime = now;
       } else if (state == ALCOHOL) {
-        // Hysteresis release: reading must stay below MARGIN_OFF for full HOLD_MS duration
-        if (diff < MARGIN_OFF && (now - lastHighTime >= HOLD_MS)) {
+        // Hysteresis release: reading must stay below marginOff for full HOLD_MS duration
+        if (diff < marginOff && (now - lastHighTime >= HOLD_MS)) {
           state = SOBER;
           Serial.println("{\"status\":\"HOLD_EXPIRED\",\"state\":\"SOBER\"}");
         }
@@ -304,4 +323,5 @@ void loop() {
     sendTelemetryJSON();
   }
 }
+
 
