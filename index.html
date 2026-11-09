@@ -27,6 +27,7 @@ h1{font-size:1.2rem}header p{font-size:.8rem;color:var(--t2)}
 .hero.drunk{border-color:var(--bad);background:linear-gradient(#d6454547,var(--sf));animation:pulse 1.5s infinite}
 .hero.fault{border-color:#b91c1c;background:linear-gradient(#b91c1c4d,var(--sf));animation:pulse 1s infinite}
 @keyframes pulse{50%{box-shadow:0 0 36px #d6454566}}
+.hero.lockout{border-color:#7f1d1d;background:linear-gradient(#7f1d1d66,var(--sf));animation:pulse 1s infinite}
 .vt{font-size:2.2rem;font-weight:900;letter-spacing:-.02em;margin:10px 0 6px;line-height:1.2}
 .vs{color:var(--t2);max-width:680px;margin:0 auto 16px}
 .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:720px;margin:0 auto 16px}
@@ -69,7 +70,7 @@ table{width:100%;border-collapse:collapse;font-size:.8rem}
 th{background:var(--cd);color:var(--t3);text-align:left;padding:7px 10px;position:sticky;top:0}
 td{padding:7px 10px;border-top:1px solid var(--bd)}
 .bd{padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:800}
-.SOBER{background:#2e9e5b40;color:#4ade80}.DRUNK{background:#d6454540;color:#f87171}.WARMUP{background:#e0a02033;color:#facc15}.FAULT{background:#b91c1c40;color:#fca5a5}
+.SOBER{background:#2e9e5b40;color:#4ade80}.DRUNK{background:#d6454540;color:#f87171}.WARMUP{background:#e0a02033;color:#facc15}.FAULT{background:#b91c1c40;color:#fca5a5}.LOCKOUT{background:#7f1d1d80;color:#fecaca}
 #msgs{font:.78rem ui-monospace,Consolas,monospace;max-height:130px;overflow:auto;color:var(--t2)}
 #msgs .w{color:var(--warn)}
 .note{font-size:.75rem;color:var(--t3);text-align:center}
@@ -104,7 +105,7 @@ td{padding:7px 10px;border-top:1px solid var(--bd)}
   </div>
   <div class="il">
     <span>RELAY (GPIO 14): <b class="rb b" id="relay">LOCKED</b></span>
-    <span><i class="led" id="lG"></i>GPIO 26 Green</span>
+    <span>STRIKES: <b id="strikes">0 / 3</b></span><span><i class="led" id="lG"></i>GPIO 26 Green</span>
     <span><i class="led" id="lR"></i>GPIO 27 Red</span>
   </div>
   <div id="cd"><span id="cdT"></span><i id="cdB"></i></div>
@@ -116,6 +117,7 @@ td{padding:7px 10px;border-top:1px solid var(--bd)}
     <button class="btn pri" id="bTest">🚀 Collect Sample</button>
     <button class="btn" id="bCal" title="Firmware only accepts CAL in SOBER state">🎯 Zero Clean Air</button>
     <button class="btn" id="bSelf">💡 LED Self-test</button>
+    <button class="btn" id="bUnlock" disabled>🔓 Unlock &amp; reset count</button>
   </div>
 </section>
 
@@ -147,6 +149,8 @@ td{padding:7px 10px;border-top:1px solid var(--bd)}
       <div><label for="mOff">Release (off)</label><input id="mOff" type="number" min="5" value="65"></div>
       <button class="btn pri" id="mApply">Apply</button>
       <button class="btn" id="mDef">Defaults</button>
+      <div><label for="mStr">Strike limit</label><input id="mStr" type="number" min="1" max="20" value="3"></div>
+      <button class="btn" id="mStrSet">Set limit</button>
     </div>
     <p style="font-size:.72rem;color:var(--t3);margin-top:6px">Sends <code>MARGIN &lt;on&gt; &lt;off&gt;</code>; needs on ≥ 20, 5 ≤ off &lt; on. Resets to firmware defaults on reboot.</p>
   </div>
@@ -197,7 +201,8 @@ const V={
  WARMUP:{cls:'warmup',pill:'PREHEATING SENSOR',h:'SENSOR WARMING UP…',c:'var(--warn)',ans:'WAIT',ign:'LOCKED',relay:'LOCKED (WARMUP)',rc:'b',g:0,r:'blink'},
  SOBER:{cls:'sober',pill:'SOBRIETY VERIFIED',h:'PERSON IS SOBER — FIT TO DRIVE',c:'var(--ok)',ans:'NO (SOBER)',ign:'ALLOWED',relay:'PERMITTED (ENABLED)',rc:'a',g:1,r:''},
  DRUNK:{cls:'drunk',pill:'ALCOHOL DETECTED',h:'PERSON IS DRUNK — DO NOT DRIVE',c:'var(--bad)',ans:'YES (DRUNK)',ign:'LOCKED',relay:'LOCKED (INTERLOCK)',rc:'b',g:0,r:'r'},
- FAULT:{cls:'fault',pill:'SENSOR FAULT',h:'HARDWARE FAULT — TEST INVALID',c:'#f87171',ans:'ERROR',ign:'BLOCKED',relay:'LOCKED (FAULT)',rc:'b',g:0,r:'blink'}
+ FAULT:{cls:'fault',pill:'SENSOR FAULT',h:'HARDWARE FAULT — TEST INVALID',c:'#f87171',ans:'ERROR',ign:'BLOCKED',relay:'LOCKED (FAULT)',rc:'b',g:0,r:'blink'},
+ LOCKOUT:{cls:'lockout',pill:'LOCKED OUT',h:'LOCKED OUT — TOO MANY DRUNK DETECTIONS',c:'#f87171',ans:'YES (REPEATED)',ign:'LOCKED',relay:'LOCKED (LOCKOUT)',rc:'b',g:0,r:'blink'}
 };
 
 function beep(bad){
@@ -217,7 +222,7 @@ function addMsg(src,text,warn){
 }
 function deviceMsg(d){
  const w='warning' in d||'unknown_command' in d;
- let t=d.info||d.warning||d.action||(d.status?d.status+(d.state?' → '+d.state:''):null)||('pong' in d?'pong':null)||(d.unknown_command?'unknown command: '+d.unknown_command:JSON.stringify(d));
+ let t=d.info||d.warning||d.action||(d.event?d.event+' ('+d.count+'/'+d.limit+')':null)||(d.status?d.status+(d.state?' → '+d.state:''):null)||('pong' in d?'pong':null)||(d.unknown_command?'unknown command: '+d.unknown_command:JSON.stringify(d));
  if(d.margin_on&&d.action){M.on=d.margin_on;M.off=d.margin_off;syncMargins(true);t+=` (trip +${d.margin_on}, release +${d.margin_off})`}
  if(d.baseline&&d.info)t+=` (${d.baseline})`;
  addMsg('device',String(t).replace(/</g,'&lt;'),w);
@@ -288,6 +293,10 @@ function onTelemetry(d){
  syncMargins();lastT=d;
  const code=(d.fault===true||d.code==='FAULT'||/FAULT/i.test(d.state))?'FAULT':d.code||(/WARM/i.test(d.state)?'WARMUP':d.is_drunk?'DRUNK':'SOBER');
  const v=V[code]||V.FAULT,warm=code==='WARMUP';
+ const cnt=d.drunk_count??0,mx=d.max_strikes??3;
+ $('strikes').textContent=cnt+' / '+mx;$('strikes').style.color=cnt>=mx?'var(--bad)':cnt?'var(--warn)':'';
+ if(document.activeElement!==$('mStr'))$('mStr').value=mx;
+ $('bUnlock').disabled=!(code==='LOCKOUT'||cnt>0);
  const valid=!warm&&d.baseline>0;
  const diff=valid?(d.diff??d.reading-d.baseline):0;
  const bac=valid?Math.max(0,d.est_bac!==undefined?+d.est_bac:diff/M.on*LIMIT):0;
@@ -321,8 +330,9 @@ function onTelemetry(d){
   const s=d.warmup_sec||0;sub='MQ-3 heater is stabilising. Keep the sensor in clean air and do not blow into it yet.';
   cd.style.display='block';$('cdT').textContent=`Warm-up: ${s}s remaining of ${WARM_TOTAL}s`;$('cdB').style.width=Math.max(0,Math.min(100,(1-s/WARM_TOTAL)*100))+'%';
  }else if(code==='FAULT'){sub='ADC out of range (<20 or >4090). Check wiring and the 10k/10k divider on GPIO 34.'}
+ else if(code==='LOCKOUT'){sub=`${cnt} drunk detections reached the limit of ${mx}. Ignition stays locked until an authorised UNLOCK.`}
  else if(drunk){
-  sub=`Reading is above the trip point (+${M.on} counts). Ignition relay is locked.`;
+  sub=`Reading is above the trip point (+${M.on} counts). Ignition relay is locked. Detection ${cnt} of ${mx}.`;
   const hs=+d.hold_sec||0;
   if(hs>0){cd.style.display='block';$('cdT').textContent=`Alcohol cleared — mandatory lockout hold: ${hs.toFixed(1)}s`;$('cdB').style.width=(100-hs/10*100)+'%'}
   else if(diff>=M.off){cd.style.display='block';$('cdT').textContent=`Waiting for reading to fall below +${M.off} counts (now +${diff})`;$('cdB').style.width='0'}
@@ -333,7 +343,7 @@ function onTelemetry(d){
 
  if(code!==lastCode){
   if(lastCode!==null)logEvent({ts:new Date().toISOString(),status:code,bac,reading:d.reading,baseline:d.baseline,on:M.on,off:M.off,ign:code==='SOBER',src:'Auto'});
-  if(code==='DRUNK')beep(true);else if(code==='SOBER'&&lastCode!==null)beep(false);
+  if(code==='DRUNK'||code==='LOCKOUT')beep(true);else if(code==='SOBER'&&lastCode!==null)beep(false);
   lastCode=code;
  }
 }
@@ -412,19 +422,29 @@ $('bCal').onclick=()=>{
  else send('CAL');
 };
 $('bSelf').onclick=()=>demo?addMsg('demo','LED self-test (simulated)'):send('TEST');
+$('bUnlock').onclick=()=>{
+ if(!confirm('Unlock ignition and reset the drunk-detection count?'))return;
+ if(demo){dCount=0;dI=1;demoStep()}else send('UNLOCK');
+};
+$('mStrSet').onclick=()=>{
+ const n=+$('mStr').value;
+ if(!(n>=1&&n<=20))return addMsg('dashboard','Strike limit must be 1–20',true);
+ if(demo){dMax=n;demoStep()}else if(connected)send('STRIKES '+n);else addMsg('dashboard','Connect the device first.',true);
+};
 $('bSnd').onclick=()=>{sound=!sound;$('bSnd').textContent=sound?'🔊':'🔇'};
 
 /* ---------- demo (mirrors firmware telemetry) ---------- */
-let dI=1,dBase=780,dRead=790,dWarm=WARM_TOTAL,dHold=10;
+let dI=1,dBase=780,dRead=790,dWarm=WARM_TOTAL,dHold=10,dCount=0,dMax=3;
 function demoStep(){
- const c=['WARMUP','SOBER','DRUNK','HOLD','FAULT'][dI],rnd=n=>Math.floor(Math.random()*n);
- const t={state:'SOBER - ignition allowed',code:'SOBER',is_drunk:false,est_bac:0,raw:0,reading:0,baseline:dBase,diff:0,margin_on:M.on,margin_off:M.off,ignition_allowed:true,warmup_sec:0,hold_sec:0,fault:false};
+ const c=['WARMUP','SOBER','DRUNK','HOLD','FAULT','LOCKOUT'][dI],rnd=n=>Math.floor(Math.random()*n);
+ const t={state:'SOBER - ignition allowed',code:'SOBER',is_drunk:false,est_bac:0,raw:0,reading:0,baseline:dBase,diff:0,margin_on:M.on,margin_off:M.off,drunk_count:dCount,max_strikes:dMax,ignition_allowed:true,warmup_sec:0,hold_sec:0,fault:false};
  const set=r=>{dRead=r;t.reading=t.raw=r;t.diff=r-t.baseline;t.est_bac=Math.max(0,t.diff/M.on*LIMIT)};
  const drunkT=()=>{t.state='DRUNK / INTOXICATED - ignition blocked';t.code='DRUNK';t.is_drunk=true;t.ignition_allowed=false};
  if(c==='WARMUP'){t.state='WARMING UP';t.code='WARMUP';t.baseline=0;t.ignition_allowed=false;set(1000-(WARM_TOTAL-dWarm));t.warmup_sec=dWarm;dWarm-=6;if(dWarm<=0){dWarm=WARM_TOTAL;dI=1}}
  else if(c==='SOBER')set(dBase+rnd(45));
  else if(c==='DRUNK'){set(dBase+M.on+60+rnd(60));drunkT()}
  else if(c==='HOLD'){set(dBase+Math.round(M.off/2));drunkT();t.hold_sec=Math.max(0,dHold).toFixed(1);dHold--;if(dHold<0){dHold=10;dI=1}}
+ else if(c==='LOCKOUT'){set(dBase+M.on+80);drunkT();t.state='LOCKED OUT - too many drunk detections';t.code='LOCKOUT';t.is_drunk=false}
  else{t.state='SENSOR FAULT - ignition blocked';t.code='FAULT';t.fault=true;t.ignition_allowed=false;set(4095)}
  onTelemetry(t);
 }
@@ -441,7 +461,7 @@ function toggleDemo(){
  }
 }
 $('bDemo').onclick=toggleDemo;
-$('hero').onclick=()=>{if(demo){dI=(dI+1)%5;dWarm=WARM_TOTAL;dHold=10;demoStep()}};
+$('hero').onclick=()=>{if(demo){dI=(dI+1)%6;if(dI===0)dCount=0;if(dI===2)dCount=Math.min(dMax-1,dCount+1);if(dI===5)dCount=dMax;dWarm=WARM_TOTAL;dHold=10;demoStep()}};
 
 size();draw();loadLogs();syncMargins(true);
 })();
